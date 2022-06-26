@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"context"
@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -45,12 +47,38 @@ func NewCertAWSStorage(caFileDir string, clientCertDir string, bucketName string
 	return cas, nil
 }
 
+func (cas *CertAWSStorage) GetCertList() ([]string, error) {
+	objList, err := cas.listFiles(cas.ClientCertDir)
+	if err != nil {
+		return nil, err
+	}
+
+	certList := []string{}
+	suffixLength := len("_cert.pem")
+	prefixLength := len(cas.ClientCertDir + "/")
+	for _, obj := range objList {
+		keyLen := len(obj)
+		if keyLen < prefixLength+suffixLength {
+			continue
+		}
+
+		left := keyLen - suffixLength
+		right := keyLen
+
+		if obj[left:right] == "_cert.pem" {
+			certList = append(certList, obj[prefixLength:left])
+		}
+	}
+
+	return certList, nil
+}
+
 func (cas *CertAWSStorage) SaveCRL(certs []pkix.RevokedCertificate) error {
 	err := cas.cs.SaveCRL(certs)
 	if err != nil {
 		return err
 	}
-	crlObjectKey := "ca/crl.pem"
+	crlObjectKey := cas.CAFileDir + "/crl.pem"
 	tempFilePath := cas.cs.GetCACRLPath()
 
 	err = cas.uploadFile(tempFilePath, crlObjectKey)
@@ -59,7 +87,7 @@ func (cas *CertAWSStorage) SaveCRL(certs []pkix.RevokedCertificate) error {
 }
 
 func (cas *CertAWSStorage) GetCRL() ([]pkix.RevokedCertificate, error) {
-	crlObjectKey := "ca/crl.pem"
+	crlObjectKey := cas.CAFileDir + "/crl.pem"
 	tempFileDir := cas.cs.GetCACRLPath()
 
 	err := cas.downloadFile(tempFileDir, crlObjectKey)
@@ -102,12 +130,20 @@ func (cas *CertAWSStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certific
 	fmt.Println(certObjectKey, keyObjectKey)
 	err := cas.downloadFile(certFilePath, certObjectKey)
 	if err != nil {
-		return nil, nil, err
+		if strings.Contains(err.Error(), "StatusCode: 404") {
+			return nil, nil, &fs.PathError{Path: keyObjectKey, Op: "", Err: err}
+		} else {
+			return nil, nil, err
+		}
 	}
 
 	err = cas.downloadFile(keyFilePath, keyObjectKey)
 	if err != nil {
-		return nil, nil, err
+		if strings.Contains(err.Error(), "StatusCode: 404") {
+			return nil, nil, &fs.PathError{Path: keyObjectKey, Op: "", Err: err}
+		} else {
+			return nil, nil, err
+		}
 	}
 
 	return cas.cs.GetCert(name)
@@ -199,4 +235,23 @@ func (cas *CertAWSStorage) downloadFile(filePath string, fileKey string) error {
 		&s3.GetObjectInput{Bucket: &cas.BucketName, Key: &fileKey},
 	)
 	return err
+}
+
+func (cas *CertAWSStorage) listFiles(path string) ([]string, error) {
+	input := &s3.ListObjectsV2Input{
+		Bucket: &cas.BucketName,
+		Prefix: &path,
+	}
+
+	resp, err := cas.client.ListObjectsV2(context.TODO(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	objKeyList := []string{}
+	for _, obj := range resp.Contents {
+		objKeyList = append(objKeyList, *obj.Key)
+	}
+
+	return objKeyList, nil
 }

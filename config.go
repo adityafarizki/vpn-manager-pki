@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 type AppConfig struct {
 	DeploymentEnv string
@@ -12,6 +15,7 @@ type AppConfig struct {
 	RedirectUrl   string
 	S3BucketName  string
 	VPNIPAdress   string
+	AdminList     []string
 }
 
 func loadConfig() AppConfig {
@@ -25,5 +29,6 @@ func loadConfig() AppConfig {
 		RedirectUrl:   os.Getenv("APP_REDIRECT_URL"),
 		S3BucketName:  os.Getenv("S3_BUCKET_NAME"),
 		VPNIPAdress:   os.Getenv("VPN_IP_ADDRESS"),
+		AdminList:     strings.Split(os.Getenv("ADMIN_LIST"), ","),
 	}
 }

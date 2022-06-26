@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"crypto/rand"
@@ -36,6 +36,32 @@ func NewCertFileStorage(caFileDir string, clientCertDir string) (*CertFileStorag
 	}
 
 	return cs, nil
+}
+
+func (cs *CertFileStorage) GetCertList() ([]string, error) {
+	objList, err := cs.listFiles(cs.ClientCertDir)
+	if err != nil {
+		return nil, err
+	}
+
+	certList := []string{}
+	suffixLength := len("_cert.pem")
+	prefixLength := len(cs.ClientCertDir + "/")
+	for _, obj := range objList {
+		keyLen := len(obj)
+		if keyLen < prefixLength+suffixLength {
+			continue
+		}
+
+		left := keyLen - suffixLength
+		right := keyLen
+
+		if obj[left:right] == "_cert.pem" {
+			certList = append(certList, obj[prefixLength:left])
+		}
+	}
+
+	return certList, nil
 }
 
 func (c *CertFileStorage) GetTlsCrypt() (string, error) {
@@ -163,6 +189,20 @@ func (c *CertFileStorage) readPrivateKeyFile(keyPath string) (*rsa.PrivateKey, e
 	}
 
 	return privkey.(*rsa.PrivateKey), nil
+}
+
+func (c *CertFileStorage) listFiles(path string) ([]string, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	fileList := []string{}
+	for _, file := range files {
+		fileList = append(fileList, file.Name())
+	}
+
+	return fileList, nil
 }
 
 func (c *CertFileStorage) SaveCRL(certs []pkix.RevokedCertificate) error {

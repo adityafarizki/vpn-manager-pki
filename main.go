@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/adityafarizki/vpn-gate-pki/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
@@ -22,8 +23,8 @@ var appConfig AppConfig
 var authCerts map[string]*rsa.PublicKey
 
 type User struct {
-	email string
-	sub   string
+	Email string
+	Sub   string
 }
 
 func testCertManager() {
@@ -31,7 +32,7 @@ func testCertManager() {
 	// 	fmt.Printf("Init PKI error: %s\n", err)
 	// }
 
-	cs, err := NewCertAWSStorage(
+	cs, err := storage.NewCertAWSStorage(
 		"ca", "clients", "vpn-bucket-881287946390-ap-southeast-1",
 	)
 	if err != nil {
@@ -86,7 +87,7 @@ func main() {
 		return
 	}
 
-	cs, err := NewCertAWSStorage("ca", "clients", appConfig.S3BucketName)
+	cs, err := storage.NewCertAWSStorage("ca", "clients", appConfig.S3BucketName)
 	if err != nil {
 		fmt.Println("Intializing storage error: ", err)
 		return
@@ -242,13 +243,13 @@ func authenticateUserToken(token string) (*User, error) {
 	user := &User{}
 
 	if email, isString := tokenClaims["email"].(string); isString {
-		user.email = email
+		user.Email = email
 	} else {
 		return nil, errors.New("invalid email claims in token")
 	}
 
 	if sub, isString := tokenClaims["sub"].(string); isString {
-		user.sub = sub
+		user.Sub = sub
 	} else {
 		return nil, errors.New("invalid sub claims in token")
 	}
@@ -257,5 +258,58 @@ func authenticateUserToken(token string) (*User, error) {
 }
 
 func getUserVPNConfig(user *User) (string, error) {
-	return GenerateVPNConfig(user.email, cm, vpnSettings)
+	_, _, err := cm.GetClientCert(user.Email)
+
+	if err != nil {
+		switch err.(type) {
+		case *fs.PathError:
+			cm.CreateNewClientCert(user.Email)
+		default:
+			return "", nil
+		}
+	}
+
+	return GenerateVPNConfig(user.Email, cm, vpnSettings)
+}
+
+func isUserAdmin(user *User) bool {
+	for _, admin := range appConfig.AdminList {
+		if user.Email == admin {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getUsersList(user *User) ([]User, error) {
+	if !isUserAdmin(user) {
+		return nil, errors.New("user is unauthorized to lists registered users")
+	}
+
+	userEmails, err := cm.GetClientList()
+	if err != nil {
+		return nil, err
+	}
+
+	users := []User{}
+	for _, email := range userEmails {
+		users = append(users, User{Email: email})
+	}
+
+	return users, nil
+}
+
+func revokeUserAccess(requester *User, target string) error {
+	_, clientCert, err := cm.GetClientCert(target)
+	if err != nil {
+		return err
+	}
+
+	err = cm.RevokeCert(clientCert)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
