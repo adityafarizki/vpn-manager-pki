@@ -25,10 +25,15 @@ type CertStorage interface {
 	GetCA() (*rsa.PrivateKey, *x509.Certificate, error)
 	GetTlsCrypt() (string, error)
 	GetVpnTemplate() (string, error)
+	GetCertList() ([]string, error)
 }
 
 type CertManager struct {
 	certStorage CertStorage
+}
+
+func (cm *CertManager) GetClientList() ([]string, error) {
+	return cm.certStorage.GetCertList()
 }
 
 func (cm *CertManager) GetClientCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
@@ -50,37 +55,31 @@ func (cm *CertManager) GetTlsCrypt() (string, error) {
 func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, error) {
 	caPrivKey, ca, err := cm.certStorage.GetCA()
 	if err != nil {
-		fmt.Println("a")
 		return nil, err
 	}
 
 	certTemplate, err := getCertTemplate(&CertInfo{CommonName: name, IsCA: false})
 	if err != nil {
-		fmt.Println("b")
 		return nil, err
 	}
 
 	privateKey, publicKey, err := genKeyPair()
 	if err != nil {
-		fmt.Println("c")
 		return nil, err
 	}
 
 	clientCertBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, ca, publicKey, caPrivKey)
 	if err != nil {
-		fmt.Println("d")
 		return nil, err
 	}
 
 	clientCert, err := x509.ParseCertificate(clientCertBytes)
 	if err != nil {
-		fmt.Println("e")
 		return nil, err
 	}
 
 	err = cm.certStorage.SaveCert(privateKey, clientCert)
 	if err != nil {
-		fmt.Println("f")
 		return nil, err
 	}
 
@@ -208,7 +207,7 @@ func getCertTemplate(info *CertInfo) (*x509.Certificate, error) {
 			CommonName:   info.CommonName,
 		},
 		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(1, 0, 0),
+		NotAfter:  time.Now().AddDate(100, 0, 0),
 		// see http://golang.org/pkg/crypto/x509/#KeyUsage
 		ExtKeyUsage: []x509.ExtKeyUsage{
 			x509.ExtKeyUsageClientAuth,
@@ -217,11 +216,11 @@ func getCertTemplate(info *CertInfo) (*x509.Certificate, error) {
 		},
 		KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		Issuer: pkix.Name{
-			Country:            []string{"ID"},
+			Country:            []string{"AA"},
 			Organization:       []string{"Personal"},
 			OrganizationalUnit: []string{"Cloud"},
-			Locality:           []string{"Jakarta"},
-			Province:           []string{"Jakarta"},
+			Locality:           []string{"Local"},
+			Province:           []string{"Local"},
 			StreetAddress:      nil,
 			PostalCode:         nil,
 			SerialNumber:       serialNumber.String(),
