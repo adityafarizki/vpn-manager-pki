@@ -78,26 +78,16 @@ func (c *CertFileStorage) SaveCert(privKey *rsa.PrivateKey, cert *x509.Certifica
 	name := cert.Subject.CommonName
 
 	certPemFileDir := fmt.Sprintf("%s/%s_cert.pem", c.ClientCertDir, name)
-	certpemfile, _ := os.Create(certPemFileDir)
-	defer certpemfile.Close()
-	certpem := &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert.Raw,
-	}
-	pem.Encode(certpemfile, certpem)
-
-	keyBytes, err := x509.MarshalPKCS8PrivateKey(privKey)
+	err := c.saveCertFile(certPemFileDir, cert)
 	if err != nil {
 		return err
 	}
+
 	pemFileDir := fmt.Sprintf("%s/%s_priv.pem", c.ClientCertDir, name)
-	pemFile, _ := os.Create(pemFileDir)
-	defer pemFile.Close()
-	var pemkey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: keyBytes,
+	err = c.savePrivateKeyFile(pemFileDir, privKey)
+	if err != nil {
+		return err
 	}
-	pem.Encode(pemFile, pemkey)
 
 	return nil
 }
@@ -122,6 +112,25 @@ func (cs *CertFileStorage) GetCA() (*rsa.PrivateKey, *x509.Certificate, error) {
 	cs.ca = cert
 	cs.caPrivKey = privkey
 	return privkey, cert, nil
+}
+
+func (cs *CertFileStorage) SaveCA(privkey *rsa.PrivateKey, ca *x509.Certificate) error {
+	cs.ca = ca
+	cs.caPrivKey = privkey
+
+	certPath := cs.GetCACertPath()
+	err := cs.saveCertFile(certPath, ca)
+	if err != nil {
+		return err
+	}
+
+	keyPath := cs.GetCAKeyPath()
+	err = cs.savePrivateKeyFile(keyPath, privkey)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cs *CertFileStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
@@ -175,6 +184,25 @@ func (c *CertFileStorage) readCertFile(certPath string) (*x509.Certificate, erro
 	return cert, nil
 }
 
+func (cs *CertFileStorage) saveCertFile(certPath string, cert *x509.Certificate) error {
+	certpemfile, err := os.Create(certPath)
+	if err != nil {
+		return err
+	}
+	defer certpemfile.Close()
+
+	certpem := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	}
+	err = pem.Encode(certpemfile, certpem)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *CertFileStorage) readPrivateKeyFile(keyPath string) (*rsa.PrivateKey, error) {
 	rawKey, err := ioutil.ReadFile(keyPath)
 	if err != nil {
@@ -189,6 +217,30 @@ func (c *CertFileStorage) readPrivateKeyFile(keyPath string) (*rsa.PrivateKey, e
 	}
 
 	return privkey.(*rsa.PrivateKey), nil
+}
+
+func (cs *CertFileStorage) savePrivateKeyFile(keypath string, privkey *rsa.PrivateKey) error {
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(privkey)
+	if err != nil {
+		return err
+	}
+
+	pemFile, err := os.Create(keypath)
+	if err != nil {
+		return err
+	}
+
+	defer pemFile.Close()
+	var pemkey = &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: keyBytes,
+	}
+	err = pem.Encode(pemFile, pemkey)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *CertFileStorage) listFiles(path string) ([]string, error) {

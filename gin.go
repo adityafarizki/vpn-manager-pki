@@ -1,4 +1,4 @@
-package main
+package vpngatepki
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func runGinServer() {
+func BuildGinRouter() *gin.Engine {
 	router := gin.Default()
 	router.GET("/", login)
 	router.GET("/login", login)
@@ -18,11 +18,11 @@ func runGinServer() {
 	router.GET("/users-list", ginGetUsersList)
 	router.DELETE("/revoke/:email", ginRevokeUserAccess)
 
-	router.Run()
+	return router
 }
 
 func login(ctx *gin.Context) {
-	authUrl := getAuthUrl()
+	authUrl := GetAuthUrl()
 	fmt.Println(authUrl)
 	ctx.PureJSON(http.StatusOK, gin.H{
 		"authUrl": authUrl,
@@ -37,7 +37,7 @@ func ginAuthenticateUser(ctx *gin.Context) (*User, error) {
 		return nil, errors.New("bad bearer auth header")
 	}
 
-	user, err := authenticateUserToken(token[1])
+	user, err := AuthenticateUserToken(token[1])
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "user token authentication failed, " + err.Error()})
 		return nil, errors.New("user token authentication failed, " + err.Error())
@@ -50,7 +50,7 @@ func ginOidcCodeAuth(ctx *gin.Context) {
 	query := ctx.Request.URL.Query()
 	authCode := query["code"][0]
 
-	token, err := getTokenFromAuthCode(authCode)
+	token, err := GetTokenFromAuthCode(authCode)
 
 	var responseCode int
 	var responseBody gin.H
@@ -71,7 +71,7 @@ func ginGetUserVPNConfig(ctx *gin.Context) {
 		return
 	}
 
-	vpnConfig, err := getUserVPNConfig(user)
+	vpnConfig, err := GetUserVPNConfig(user)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "generating user vpn config failed, " + err.Error()})
 		return
@@ -86,7 +86,7 @@ func ginGetUsersList(ctx *gin.Context) {
 		return
 	}
 
-	usersList, err := getUsersList(user)
+	usersList, err := GetUsersList(user)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "getting users list failed, " + err.Error()})
 		return
@@ -103,7 +103,7 @@ func ginRevokeUserAccess(ctx *gin.Context) {
 	}
 
 	target := ctx.Param("email")
-	err = revokeUserAccess(requester, target)
+	err = RevokeUserAccess(requester, target)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "revoking user access failed, " + err.Error()})
 		return

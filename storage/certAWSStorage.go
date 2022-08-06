@@ -122,6 +122,31 @@ func (cas *CertAWSStorage) SaveCert(privatekey *rsa.PrivateKey, cert *x509.Certi
 	return nil
 }
 
+func (cas *CertAWSStorage) SaveCA(privatekey *rsa.PrivateKey, cert *x509.Certificate) error {
+	err := cas.cs.SaveCA(privatekey, cert)
+	if err != nil {
+		return err
+	}
+
+	caFilePath := cas.cs.GetCACertPath()
+	caKeyPath := cas.cs.GetCAKeyPath()
+
+	caObjectKey := fmt.Sprintf("%s/cert.pem", cas.CAFileDir)
+	caKeyObjectKey := fmt.Sprintf("%s/priv.pem", cas.CAFileDir)
+
+	err = cas.uploadFile(caFilePath, caObjectKey)
+	if err != nil {
+		return err
+	}
+
+	err = cas.uploadFile(caKeyPath, caKeyObjectKey)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (cas *CertAWSStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
 	certFilePath, keyFilePath := cas.cs.GetClientCertPath(name)
 	certObjectKey := fmt.Sprintf("%s/%s_cert.pem", cas.ClientCertDir, name)

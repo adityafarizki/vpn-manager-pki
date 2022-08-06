@@ -1,4 +1,4 @@
-package main
+package vpngatepki
 
 import (
 	"os"
@@ -18,8 +18,8 @@ type AppConfig struct {
 	AdminList     []string
 }
 
-func loadConfig() AppConfig {
-	return AppConfig{
+func loadConfig() *AppConfig {
+	return &AppConfig{
 		DeploymentEnv: os.Getenv("DEPLOYMENT_ENV"),
 		ClientId:      os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret:  os.Getenv("GOOGLE_CLIENT_SECRET"),

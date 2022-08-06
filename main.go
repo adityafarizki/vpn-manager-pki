@@ -1,7 +1,8 @@
-package main
+package vpngatepki
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -15,11 +16,15 @@ import (
 	"github.com/adityafarizki/vpn-gate-pki/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 )
 
 var cm *CertManager
 var vpnSettings *VPNSettings
-var appConfig AppConfig
+var Config *AppConfig
 var authCerts map[string]*rsa.PublicKey
 
 type User struct {
@@ -27,83 +32,50 @@ type User struct {
 	Sub   string
 }
 
-func testCertManager() {
-	// if err := InitPKI("certs"); err != nil {
-	// 	fmt.Printf("Init PKI error: %s\n", err)
-	// }
+var ginLambda *ginadapter.GinLambda
 
-	cs, err := storage.NewCertAWSStorage(
-		"ca", "clients", "vpn-bucket-881287946390-ap-southeast-1",
-	)
+func main() {
+	err := Bootstrap()
 	if err != nil {
-		fmt.Printf("Initializing AWS storage error: %s\n", err)
-		return
+		fmt.Println("Error occured during bootstrap: " + err.Error())
 	}
 
-	cm = &CertManager{
-		certStorage: cs,
-	}
-
-	vpnTemplate, err := cm.GetVpnTemplate()
-	if err != nil {
-		fmt.Printf("Getting VPN Template Error: %s\n", err)
-		return
-	}
-
-	tlsCrypt, err := cm.GetTlsCrypt()
-	if err != nil {
-		fmt.Printf("Getting TLS Crypt Error: %s\n", err)
-		return
-	}
-
-	vpnSettings = &VPNSettings{
-		ServerIPAddress: "34.142.227.244",
-		Template:        vpnTemplate,
-		TlsCrypt:        tlsCrypt,
-	}
-
-	_, err = cm.CreateNewClientCert("adot")
-	if err != nil {
-		fmt.Printf("Generating client cert error: %s\n", err)
-	}
-
-	config, err := GenerateVPNConfig("adot", cm, vpnSettings)
-	if err != nil {
-		fmt.Printf("Generating VPN config error: %s\n", err)
-	}
-
-	err = ioutil.WriteFile("config.ovpn", []byte(config), fs.FileMode(0755))
-	if err != nil {
-		fmt.Printf("Writing VPN config error: %s\n", err)
+	router := BuildGinRouter()
+	if Config.DeploymentEnv == "lambda" {
+		ginLambda = ginadapter.New(router)
+		lambda.Start(Handler)
+	} else {
+		router.Run()
 	}
 }
 
-func main() {
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	return ginLambda.ProxyWithContext(ctx, req)
+}
+
+func Bootstrap() error {
 	var err error
-	appConfig = loadConfig()
-	authCerts, err = fetchAuthCerts(appConfig.CertUrl)
+	Config = loadConfig()
+	authCerts, err = FetchAuthCerts(Config.CertUrl)
 	if err != nil {
-		fmt.Println("Initializing auth cert error: ", err)
-		return
+		return errors.New("Initializing auth cert error: " + err.Error())
 	}
 
-	cs, err := storage.NewCertAWSStorage("ca", "clients", appConfig.S3BucketName)
+	cs, err := storage.NewCertAWSStorage("ca", "clients", Config.S3BucketName)
 	if err != nil {
-		fmt.Println("Intializing storage error: ", err)
-		return
+		fmt.Println()
+		return errors.New("Intializing storage error: " + err.Error())
 	}
 
 	cm = &CertManager{certStorage: cs}
 
 	vpnSettings, err = initializeVPNSettings(cm)
 	if err != nil {
-		fmt.Println("Intializing vpn settings error: ", err)
-		return
+		return errors.New("Intializing vpn settings error: " + err.Error())
 	}
 
-	if appConfig.DeploymentEnv != "lambda" {
-		runGinServer()
-	}
+	return nil
 }
 
 func initializeVPNSettings(cm *CertManager) (*VPNSettings, error) {
@@ -118,7 +90,7 @@ func initializeVPNSettings(cm *CertManager) (*VPNSettings, error) {
 	}
 
 	vpnSettings = &VPNSettings{
-		ServerIPAddress: appConfig.VPNIPAdress,
+		ServerIPAddress: Config.VPNIPAdress,
 		Template:        vpnTemplate,
 		TlsCrypt:        tlsCrypt,
 	}
@@ -126,7 +98,7 @@ func initializeVPNSettings(cm *CertManager) (*VPNSettings, error) {
 	return vpnSettings, nil
 }
 
-func fetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
+func FetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
 	client := http.DefaultClient
 	req, err := http.NewRequest("GET", certUrl, nil)
 	if err != nil {
@@ -162,18 +134,18 @@ func fetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
 	return result, nil
 }
 
-func getAuthUrl() string {
+func GetAuthUrl() string {
 	return fmt.Sprintf(
 		"%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s",
-		appConfig.AuthUrl,
-		appConfig.ClientId,
-		appConfig.RedirectUrl,
+		Config.AuthUrl,
+		Config.ClientId,
+		Config.RedirectUrl,
 		"code",
 		"https://www.googleapis.com/auth/userinfo.email",
 	)
 }
 
-func getTokenFromAuthCode(authCode string) (*jwt.Token, error) {
+func GetTokenFromAuthCode(authCode string) (*jwt.Token, error) {
 	userToken, _ := getUserToken(authCode)
 	token, err := parseJWTToken(userToken["id_token"])
 
@@ -196,17 +168,17 @@ func parseJWTToken(token string) (*jwt.Token, error) {
 func getUserToken(authCode string) (map[string]string, error) {
 	client := http.DefaultClient
 	body, err := json.Marshal(gin.H{
-		"client_id":     appConfig.ClientId,
-		"client_secret": appConfig.ClientSecret,
+		"client_id":     Config.ClientId,
+		"client_secret": Config.ClientSecret,
 		"grant_type":    "authorization_code",
 		"code":          authCode,
-		"redirect_uri":  appConfig.RedirectUrl,
+		"redirect_uri":  Config.RedirectUrl,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", appConfig.TokenUrl, bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", Config.TokenUrl, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +201,7 @@ func getUserToken(authCode string) (map[string]string, error) {
 	return userToken, nil
 }
 
-func authenticateUserToken(token string) (*User, error) {
+func AuthenticateUserToken(token string) (*User, error) {
 	parsedToken, err := parseJWTToken(token)
 	if err != nil {
 		return nil, err
@@ -257,7 +229,7 @@ func authenticateUserToken(token string) (*User, error) {
 	return user, nil
 }
 
-func getUserVPNConfig(user *User) (string, error) {
+func GetUserVPNConfig(user *User) (string, error) {
 	_, _, err := cm.GetClientCert(user.Email)
 
 	if err != nil {
@@ -272,8 +244,8 @@ func getUserVPNConfig(user *User) (string, error) {
 	return GenerateVPNConfig(user.Email, cm, vpnSettings)
 }
 
-func isUserAdmin(user *User) bool {
-	for _, admin := range appConfig.AdminList {
+func IsUserAdmin(user *User) bool {
+	for _, admin := range Config.AdminList {
 		if user.Email == admin {
 			return true
 		}
@@ -282,8 +254,8 @@ func isUserAdmin(user *User) bool {
 	return false
 }
 
-func getUsersList(user *User) ([]User, error) {
-	if !isUserAdmin(user) {
+func GetUsersList(user *User) ([]User, error) {
+	if !IsUserAdmin(user) {
 		return nil, errors.New("user is unauthorized to lists registered users")
 	}
 
@@ -300,7 +272,7 @@ func getUsersList(user *User) ([]User, error) {
 	return users, nil
 }
 
-func revokeUserAccess(requester *User, target string) error {
+func RevokeUserAccess(requester *User, target string) error {
 	_, clientCert, err := cm.GetClientCert(target)
 	if err != nil {
 		return err
@@ -312,4 +284,8 @@ func revokeUserAccess(requester *User, target string) error {
 	}
 
 	return nil
+}
+
+func InitPKI() error {
+	return cm.InitPKI()
 }

@@ -1,14 +1,11 @@
-package main
+package vpngatepki
 
 import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
-	"fmt"
 	"math/big"
-	"os"
 	"time"
 )
 
@@ -22,6 +19,7 @@ type CertStorage interface {
 	GetCRL() ([]pkix.RevokedCertificate, error)
 	SaveCert(privatekey *rsa.PrivateKey, cert *x509.Certificate) error
 	GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, error)
+	SaveCA(*rsa.PrivateKey, *x509.Certificate) error
 	GetCA() (*rsa.PrivateKey, *x509.Certificate, error)
 	GetTlsCrypt() (string, error)
 	GetVpnTemplate() (string, error)
@@ -102,8 +100,8 @@ func (cm *CertManager) RevokeCert(cert *x509.Certificate) error {
 	return err
 }
 
-func InitPKI(dirname string) error {
-	ca, err := getCertTemplate(&CertInfo{CommonName: "PersonalCA", IsCA: true})
+func (cm *CertManager) InitPKI() error {
+	caTemplate, err := getCertTemplate(&CertInfo{CommonName: "PersonalCA", IsCA: true})
 	if err != nil {
 		return err
 	}
@@ -115,63 +113,28 @@ func InitPKI(dirname string) error {
 
 	publickey := &privatekey.PublicKey
 
-	var parent = ca
+	parent := caTemplate
 	cert, err := x509.CreateCertificate(
-		rand.Reader, ca, parent, publickey, privatekey,
+		rand.Reader, caTemplate, parent, publickey, privatekey,
 	)
 	if err != nil {
 		return err
 	}
 
-	isDirExists, err := os.Stat(dirname)
-	if err != nil || !isDirExists.IsDir() {
-		err := os.Mkdir(dirname, os.FileMode(0700))
-		if err != nil {
-			return err
-		}
+	ca, err := x509.ParseCertificate(cert)
+	if err != nil {
+		return err
 	}
 
-	certPemFileDir := fmt.Sprintf("%s/cert.pem", dirname)
-	certpemfile, _ := os.Create(certPemFileDir)
-	defer certpemfile.Close()
-	certpem := &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cert,
+	err = cm.certStorage.SaveCA(privatekey, ca)
+	if err != nil {
+		return err
 	}
-	pem.Encode(certpemfile, certpem)
 
-	pubPemFileDir := fmt.Sprintf("%s/pub.pem", dirname)
-	pubpemfile, _ := os.Create(pubPemFileDir)
-	defer certpemfile.Close()
-	pubkeyBytes, _ := x509.MarshalPKIXPublicKey(publickey)
-	pubpem := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubkeyBytes,
+	err = cm.certStorage.SaveCRL([]pkix.RevokedCertificate{})
+	if err != nil {
+		return err
 	}
-	pem.Encode(pubpemfile, pubpem)
-
-	// this will create plain text PEM file.
-	pemFileDir := fmt.Sprintf("%s/priv.pem", dirname)
-	pemFile, _ := os.Create(pemFileDir)
-	defer pemFile.Close()
-	privkeyBytes, _ := x509.MarshalPKCS8PrivateKey(privatekey)
-	var pemkey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privkeyBytes,
-	}
-	pem.Encode(pemFile, pemkey)
-
-	pemCrlDir := fmt.Sprintf("%s/crl.pem", dirname)
-	pemCrlFile, _ := os.Create(pemCrlDir)
-	defer pemCrlFile.Close()
-	// var pemblock = &pem.Block{
-	// 	Type:  "X509 CRL",
-	// 	Bytes: []byte{},
-	// }
-	// err = pem.Encode(pemCrlFile, pemblock)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

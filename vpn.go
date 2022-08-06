@@ -1,4 +1,4 @@
-package main
+package vpngatepki
 
 import (
 	"bytes"
