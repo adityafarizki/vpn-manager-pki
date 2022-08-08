@@ -2,7 +2,6 @@ package vpngatepki
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,7 +22,6 @@ func BuildGinRouter() *gin.Engine {
 
 func login(ctx *gin.Context) {
 	authUrl := GetAuthUrl()
-	fmt.Println(authUrl)
 	ctx.PureJSON(http.StatusOK, gin.H{
 		"authUrl": authUrl,
 	})
@@ -32,6 +30,7 @@ func login(ctx *gin.Context) {
 func ginAuthenticateUser(ctx *gin.Context) (*User, error) {
 	bearerAuth := ctx.Request.Header.Get("Authorization")
 	token := strings.Split(bearerAuth, " ")
+
 	if len(token) < 2 {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "bad bearer auth header"})
 		return nil, errors.New("bad bearer auth header")
@@ -96,7 +95,6 @@ func ginGetUsersList(ctx *gin.Context) {
 }
 
 func ginRevokeUserAccess(ctx *gin.Context) {
-	fmt.Println("found here")
 	requester, err := ginAuthenticateUser(ctx)
 	if err != nil {
 		return

@@ -2,10 +2,15 @@ package vpngatepki_test
 
 import (
 	"context"
+	"math/rand"
+	"time"
 
+	vpn "github.com/adityafarizki/vpn-gate-pki/vpngatepki"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 func cleanS3BucketDir(bucket string, dir string) error {
@@ -83,4 +88,56 @@ func deleteObjects(client *s3.Client, bucket string, keys []string) error {
 	}
 
 	return nil
+}
+
+func randomString(length int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const letterLen = len(letterBytes)
+	result := make([]byte, length)
+
+	for i := range result {
+		result[i] = letterBytes[rand.Intn(letterLen)]
+	}
+	return string(result)
+}
+
+func generateRandomUser(email string, sub string) *vpn.User {
+	if email == "" {
+		email = randomString(10) + "@" + randomString(8) + ".com"
+	}
+
+	if sub == "" {
+		sub = uuid.NewString()
+	}
+
+	return &vpn.User{
+		Email: email,
+		Sub:   sub,
+	}
+}
+
+func buildUserJWT(user *vpn.User) (string, error) {
+	var result string
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"iss":            "https://accounts.google.com",
+		"azp":            randomString(40),
+		"aud":            randomString(40),
+		"sub":            user.Sub,
+		"email":          user.Email,
+		"email_verified": true,
+		"iat":            time.Now().Unix(),
+		"exp":            time.Now().Unix() + 3600,
+	})
+	token.Header = map[string]interface{}{
+		"kid": jwtKeyId,
+		"typ": "JWT",
+		"alg": "RS256",
+	}
+	result, err := token.SignedString(jwtPrivKey)
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
