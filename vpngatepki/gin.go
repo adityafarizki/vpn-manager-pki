@@ -21,7 +21,7 @@ func BuildGinRouter() *gin.Engine {
 }
 
 func login(ctx *gin.Context) {
-	authUrl := GetAuthUrl()
+	authUrl := getAuthUrl()
 	ctx.PureJSON(http.StatusOK, gin.H{
 		"authUrl": authUrl,
 	})
@@ -36,7 +36,7 @@ func ginAuthenticateUser(ctx *gin.Context) (*User, error) {
 		return nil, errors.New("bad bearer auth header")
 	}
 
-	user, err := AuthenticateUserToken(token[1])
+	user, err := authenticateUserToken(token[1])
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "user token authentication failed, " + err.Error()})
 		return nil, errors.New("user token authentication failed, " + err.Error())
@@ -49,7 +49,7 @@ func ginOidcCodeAuth(ctx *gin.Context) {
 	query := ctx.Request.URL.Query()
 	authCode := query["code"][0]
 
-	token, err := GetTokenFromAuthCode(authCode)
+	token, err := getTokenFromAuthCode(authCode)
 
 	var responseCode int
 	var responseBody gin.H
@@ -76,7 +76,7 @@ func ginGetUserVPNConfig(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"config": vpnConfig})
+	ctx.PureJSON(http.StatusOK, gin.H{"config": vpnConfig})
 }
 
 func ginGetUsersList(ctx *gin.Context) {

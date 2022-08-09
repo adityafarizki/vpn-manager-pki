@@ -19,13 +19,13 @@ import (
 
 var Config *AppConfig
 var AuthCerts map[string]*rsa.PublicKey
-var cm *CertManager
-var vpnSettings *VPNSettings
+var CertMgr *CertManager
+var VpnSettings *VPNSettings
 
 func Bootstrap() error {
 	var err error
 	Config = loadConfig()
-	AuthCerts, err = FetchAuthCerts(Config.CertUrl)
+	AuthCerts, err = fetchAuthCerts(Config.CertUrl)
 	if err != nil {
 		return errors.New("Initializing auth cert error: " + err.Error())
 	}
@@ -35,9 +35,9 @@ func Bootstrap() error {
 		return errors.New("Intializing storage error: " + err.Error())
 	}
 
-	cm = &CertManager{certStorage: cs}
+	CertMgr = &CertManager{certStorage: cs}
 
-	vpnSettings, err = initializeVPNSettings(cm)
+	VpnSettings, err = initializeVPNSettings(CertMgr)
 	if err != nil {
 		return errors.New("Intializing vpn settings error: " + err.Error())
 	}
@@ -45,27 +45,27 @@ func Bootstrap() error {
 	return nil
 }
 
-func initializeVPNSettings(cm *CertManager) (*VPNSettings, error) {
-	vpnTemplate, err := cm.GetVpnTemplate()
+func initializeVPNSettings(CertMgr *CertManager) (*VPNSettings, error) {
+	vpnTemplate, err := CertMgr.GetVpnTemplate()
 	if err != nil {
 		return nil, err
 	}
 
-	tlsCrypt, err := cm.GetTlsCrypt()
+	tlsCrypt, err := CertMgr.GetTlsCrypt()
 	if err != nil {
 		return nil, err
 	}
 
-	vpnSettings = &VPNSettings{
+	VpnSettings = &VPNSettings{
 		ServerIPAddress: Config.VPNIPAdress,
 		Template:        vpnTemplate,
 		TlsCrypt:        tlsCrypt,
 	}
 
-	return vpnSettings, nil
+	return VpnSettings, nil
 }
 
-func FetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
+func fetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
 	client := http.DefaultClient
 	req, err := http.NewRequest("GET", certUrl, nil)
 	if err != nil {
@@ -101,7 +101,7 @@ func FetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
 	return result, nil
 }
 
-func GetAuthUrl() string {
+func getAuthUrl() string {
 	return fmt.Sprintf(
 		"%s?client_id=%s&redirect_uri=%s&response_type=%s&scope=%s",
 		Config.AuthUrl,
@@ -112,7 +112,7 @@ func GetAuthUrl() string {
 	)
 }
 
-func GetTokenFromAuthCode(authCode string) (*jwt.Token, error) {
+func getTokenFromAuthCode(authCode string) (*jwt.Token, error) {
 	userToken, _ := getUserToken(authCode)
 	token, err := parseJWTToken(userToken["id_token"])
 
@@ -168,7 +168,7 @@ func getUserToken(authCode string) (map[string]string, error) {
 	return userToken, nil
 }
 
-func AuthenticateUserToken(token string) (*User, error) {
+func authenticateUserToken(token string) (*User, error) {
 	parsedToken, err := parseJWTToken(token)
 	if err != nil {
 		return nil, err
@@ -197,18 +197,18 @@ func AuthenticateUserToken(token string) (*User, error) {
 }
 
 func GetUserVPNConfig(user *User) (string, error) {
-	_, _, err := cm.GetClientCert(user.Email)
+	_, _, err := CertMgr.GetClientCert(user.Email)
 
 	if err != nil {
 		switch err.(type) {
 		case *fs.PathError:
-			cm.CreateNewClientCert(user.Email)
+			CertMgr.CreateNewClientCert(user.Email)
 		default:
 			return "", nil
 		}
 	}
 
-	return GenerateVPNConfig(user.Email, cm, vpnSettings)
+	return GenerateVPNConfig(user.Email, CertMgr, VpnSettings)
 }
 
 func IsUserAdmin(user *User) bool {
@@ -226,7 +226,7 @@ func GetUsersList(user *User) ([]User, error) {
 		return nil, errors.New("user is unauthorized to lists registered users")
 	}
 
-	userEmails, err := cm.GetClientList()
+	userEmails, err := CertMgr.GetClientList()
 	if err != nil {
 		return nil, err
 	}
@@ -240,12 +240,12 @@ func GetUsersList(user *User) ([]User, error) {
 }
 
 func RevokeUserAccess(requester *User, target string) error {
-	_, clientCert, err := cm.GetClientCert(target)
+	_, clientCert, err := CertMgr.GetClientCert(target)
 	if err != nil {
 		return err
 	}
 
-	err = cm.RevokeCert(clientCert)
+	err = CertMgr.RevokeCert(clientCert)
 	if err != nil {
 		return err
 	}
@@ -254,5 +254,5 @@ func RevokeUserAccess(requester *User, target string) error {
 }
 
 func InitPKI() error {
-	return cm.InitPKI()
+	return CertMgr.InitPKI()
 }

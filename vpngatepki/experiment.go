@@ -21,34 +21,34 @@ func testCertManager() {
 		return
 	}
 
-	cm = &CertManager{
+	CertMgr = &CertManager{
 		certStorage: cs,
 	}
 
-	vpnTemplate, err := cm.GetVpnTemplate()
+	vpnTemplate, err := CertMgr.GetVpnTemplate()
 	if err != nil {
 		fmt.Printf("Getting VPN Template Error: %s\n", err)
 		return
 	}
 
-	tlsCrypt, err := cm.GetTlsCrypt()
+	tlsCrypt, err := CertMgr.GetTlsCrypt()
 	if err != nil {
 		fmt.Printf("Getting TLS Crypt Error: %s\n", err)
 		return
 	}
 
-	vpnSettings = &VPNSettings{
+	VpnSettings = &VPNSettings{
 		ServerIPAddress: "34.142.227.244",
 		Template:        vpnTemplate,
 		TlsCrypt:        tlsCrypt,
 	}
 
-	_, err = cm.CreateNewClientCert("adot")
+	_, err = CertMgr.CreateNewClientCert("adot")
 	if err != nil {
 		fmt.Printf("Generating client cert error: %s\n", err)
 	}
 
-	config, err := GenerateVPNConfig("adot", cm, vpnSettings)
+	config, err := GenerateVPNConfig("adot", CertMgr, VpnSettings)
 	if err != nil {
 		fmt.Printf("Generating VPN config error: %s\n", err)
 	}

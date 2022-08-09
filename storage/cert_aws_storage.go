@@ -152,7 +152,6 @@ func (cas *CertAWSStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certific
 	certObjectKey := fmt.Sprintf("%s/%s_cert.pem", cas.ClientCertDir, name)
 	keyObjectKey := fmt.Sprintf("%s/%s_priv.pem", cas.ClientCertDir, name)
 
-	fmt.Println(certObjectKey, keyObjectKey)
 	err := cas.downloadFile(certFilePath, certObjectKey)
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode: 404") {
@@ -184,7 +183,6 @@ func (cas *CertAWSStorage) GetCA() (*rsa.PrivateKey, *x509.Certificate, error) {
 	caObjectKey := fmt.Sprintf("%s/cert.pem", cas.CAFileDir)
 	caKeyObjectKey := fmt.Sprintf("%s/priv.pem", cas.CAFileDir)
 
-	fmt.Println(caObjectKey, caKeyObjectKey)
 	err := cas.downloadFile(caFilePath, caObjectKey)
 	if err != nil {
 		return nil, nil, err

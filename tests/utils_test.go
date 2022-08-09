@@ -2,7 +2,10 @@ package vpngatepki_test
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"math/rand"
+	"strings"
 	"time"
 
 	vpn "github.com/adityafarizki/vpn-gate-pki/vpngatepki"
@@ -140,4 +143,20 @@ func buildUserJWT(user *vpn.User) (string, error) {
 	}
 
 	return result, nil
+}
+
+func getCertFromVPNConfig(vpnConfig string) (*x509.Certificate, error) {
+	startIdx := strings.Index(vpnConfig, "<cert>") + len("<cert>")
+	endIdx := strings.Index(vpnConfig, "</cert>")
+
+	rawCert := vpnConfig[startIdx:endIdx]
+
+	pemCert, _ := pem.Decode([]byte(rawCert))
+
+	cert, err := x509.ParseCertificate(pemCert.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return cert, nil
 }
