@@ -22,7 +22,7 @@ func testCertManager() {
 	}
 
 	CertMgr = &CertManager{
-		certStorage: cs,
+		CertStorage: cs,
 	}
 
 	vpnTemplate, err := CertMgr.GetVpnTemplate()

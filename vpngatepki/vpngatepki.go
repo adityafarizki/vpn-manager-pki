@@ -35,7 +35,7 @@ func Bootstrap() error {
 		return errors.New("Intializing storage error: " + err.Error())
 	}
 
-	CertMgr = &CertManager{certStorage: cs}
+	CertMgr = &CertManager{CertStorage: cs}
 
 	VpnSettings, err = initializeVPNSettings(CertMgr)
 	if err != nil {
@@ -196,6 +196,15 @@ func authenticateUserToken(token string) (*User, error) {
 	return user, nil
 }
 
+func handleError(err error) error {
+	switch err.(type) {
+	case *fs.PathError:
+		return &NotFoundError{message: err.Error()}
+	default:
+		return err
+	}
+}
+
 func GetUserVPNConfig(user *User) (string, error) {
 	_, _, err := CertMgr.GetClientCert(user.Email)
 
@@ -239,15 +248,18 @@ func GetUsersList(user *User) ([]User, error) {
 	return users, nil
 }
 
-func RevokeUserAccess(requester *User, target string) error {
-	_, clientCert, err := CertMgr.GetClientCert(target)
+func RevokeUserAccess(requester *User, targetEmail string) error {
+	if !IsUserAdmin(requester) {
+		return &UnauthorizedError{message: "user is unauthorized to revoke cert"}
+	}
+	_, clientCert, err := CertMgr.GetClientCert(targetEmail)
 	if err != nil {
-		return err
+		return handleError(err)
 	}
 
 	err = CertMgr.RevokeCert(clientCert)
 	if err != nil {
-		return err
+		return handleError(err)
 	}
 
 	return nil

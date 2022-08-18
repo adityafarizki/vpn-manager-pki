@@ -10,14 +10,25 @@ import (
 
 func BuildGinRouter() *gin.Engine {
 	router := gin.Default()
+	router.Use(errorHandler)
 	router.GET("/", login)
 	router.GET("/login", login)
 	router.GET("/oidc-code-auth", ginOidcCodeAuth)
 	router.GET("/vpn-config", ginGetUserVPNConfig)
-	router.GET("/users-list", ginGetUsersList)
-	router.DELETE("/revoke/:email", ginRevokeUserAccess)
+	router.GET("/users", ginGetUsersList)
+	router.DELETE("/user/:email", ginRevokeUserAccess)
 
 	return router
+}
+
+func errorHandler(ctx *gin.Context) {
+	ctx.Next()
+
+	if len(ctx.Errors) > 0 {
+		ctx.JSON(
+			getErrorCode(ctx.Errors[0].Err), gin.H{"message": ctx.Errors[0].Err.Error()},
+		)
+	}
 }
 
 func login(ctx *gin.Context) {
@@ -100,10 +111,10 @@ func ginRevokeUserAccess(ctx *gin.Context) {
 		return
 	}
 
-	target := ctx.Param("email")
-	err = RevokeUserAccess(requester, target)
+	targetEmail := ctx.Param("email")
+	err = RevokeUserAccess(requester, targetEmail)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "revoking user access failed, " + err.Error()})
+		ctx.Error(err)
 		return
 	}
 

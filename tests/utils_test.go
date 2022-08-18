@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"time"
@@ -91,6 +92,20 @@ func deleteObjects(client *s3.Client, bucket string, keys []string) error {
 	}
 
 	return nil
+}
+
+func getObject(client *s3.Client, bucket string, key string) ([]byte, error) {
+	getObjOutput, err := client.GetObject(context.TODO(), &s3.GetObjectInput{Bucket: &bucket, Key: &key})
+	if err != nil {
+		return nil, err
+	}
+
+	object, err := ioutil.ReadAll(getObjOutput.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return object, nil
 }
 
 func randomString(length int) string {

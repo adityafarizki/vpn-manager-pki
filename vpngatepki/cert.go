@@ -24,34 +24,35 @@ type CertStorage interface {
 	GetTlsCrypt() (string, error)
 	GetVpnTemplate() (string, error)
 	GetCertList() ([]string, error)
+	MarkRevoked(*x509.Certificate) error
 }
 
 type CertManager struct {
-	certStorage CertStorage
+	CertStorage CertStorage
 }
 
 func (cm *CertManager) GetClientList() ([]string, error) {
-	return cm.certStorage.GetCertList()
+	return cm.CertStorage.GetCertList()
 }
 
 func (cm *CertManager) GetClientCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
-	return cm.certStorage.GetCert(name)
+	return cm.CertStorage.GetCert(name)
 }
 
 func (cm *CertManager) GetVpnTemplate() (string, error) {
-	return cm.certStorage.GetVpnTemplate()
+	return cm.CertStorage.GetVpnTemplate()
 }
 
 func (cm *CertManager) GetCA() (*rsa.PrivateKey, *x509.Certificate, error) {
-	return cm.certStorage.GetCA()
+	return cm.CertStorage.GetCA()
 }
 
 func (cm *CertManager) GetTlsCrypt() (string, error) {
-	return cm.certStorage.GetTlsCrypt()
+	return cm.CertStorage.GetTlsCrypt()
 }
 
 func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, error) {
-	caPrivKey, ca, err := cm.certStorage.GetCA()
+	caPrivKey, ca, err := cm.CertStorage.GetCA()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +77,7 @@ func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, erro
 		return nil, err
 	}
 
-	err = cm.certStorage.SaveCert(privateKey, clientCert)
+	err = cm.CertStorage.SaveCert(privateKey, clientCert)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, erro
 }
 
 func (cm *CertManager) RevokeCert(cert *x509.Certificate) error {
-	crl, err := cm.certStorage.GetCRL()
+	crl, err := cm.CertStorage.GetCRL()
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,12 @@ func (cm *CertManager) RevokeCert(cert *x509.Certificate) error {
 		RevocationTime: time.Now(),
 	}
 	revokedCerts := append(crl, *newRevokedCert)
-	err = cm.certStorage.SaveCRL(revokedCerts)
+	err = cm.CertStorage.SaveCRL(revokedCerts)
+	if err != nil {
+		return err
+	}
+
+	err = cm.CertStorage.MarkRevoked(cert)
 
 	return err
 }
@@ -126,12 +132,12 @@ func (cm *CertManager) InitPKI() error {
 		return err
 	}
 
-	err = cm.certStorage.SaveCA(privatekey, ca)
+	err = cm.CertStorage.SaveCA(privatekey, ca)
 	if err != nil {
 		return err
 	}
 
-	err = cm.certStorage.SaveCRL([]pkix.RevokedCertificate{})
+	err = cm.CertStorage.SaveCRL([]pkix.RevokedCertificate{})
 	if err != nil {
 		return err
 	}

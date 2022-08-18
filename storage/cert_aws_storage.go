@@ -7,6 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"strings"
 
@@ -204,6 +205,34 @@ func (cas *CertAWSStorage) GetCA() (*rsa.PrivateKey, *x509.Certificate, error) {
 	return caPrivKey, caCert, err
 }
 
+func (cas *CertAWSStorage) MarkRevoked(cert *x509.Certificate) error {
+	client, err := getAwsS3Client()
+	if err != nil {
+		return err
+	}
+
+	objectKey := fmt.Sprintf("%s/%s_cert.pem", cas.ClientCertDir, cert.Subject.CommonName)
+	source := cas.BucketName + "/" + url.QueryEscape(objectKey)
+	target := objectKey + ".revoked"
+
+	_, err = client.CopyObject(context.TODO(), &s3.CopyObjectInput{
+		Bucket:     &cas.BucketName,
+		CopySource: &source,
+		Key:        &target,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: &cas.BucketName,
+		Key:    &objectKey,
+	})
+
+	return nil
+}
+
 func (cas *CertAWSStorage) GetTlsCrypt() (string, error) {
 	objectKey := cas.CAFileDir + "/tls_crypt.pem"
 	filePath := cas.cs.CAFileDir + "/tls_crypt.pem"
@@ -277,4 +306,14 @@ func (cas *CertAWSStorage) listFiles(path string) ([]string, error) {
 	}
 
 	return objKeyList, nil
+}
+
+func getAwsS3Client() (*s3.Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	client := s3.NewFromConfig(cfg)
+	return client, nil
 }

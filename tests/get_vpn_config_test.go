@@ -22,7 +22,9 @@ var _ = Describe("create vpn user", Ordered, func() {
 	})
 
 	Describe("Given user doesn't exist before", func() {
-		cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
+		BeforeAll(func() {
+			cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
+		})
 
 		Context("When client send request to create vpn user", func() {
 			var response *httptest.ResponseRecorder
@@ -42,7 +44,7 @@ var _ = Describe("create vpn user", Ordered, func() {
 				ginRouter.ServeHTTP(response, req)
 			})
 
-			It("Response with 200 OK", func() {
+			It("Responds with 200 OK", func() {
 				Expect(response.Code).To(Equal(200))
 			})
 
@@ -91,6 +93,10 @@ var _ = Describe("create vpn user", Ordered, func() {
 			Expect(err).To(BeNil())
 		})
 
+		AfterAll(func() {
+			cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
+		})
+
 		Context("When client send request to create vpn user", func() {
 			var response *httptest.ResponseRecorder
 			BeforeAll(func() {
@@ -107,7 +113,7 @@ var _ = Describe("create vpn user", Ordered, func() {
 				ginRouter.ServeHTTP(response, req)
 			})
 
-			It("Response with 200 OK", func() {
+			It("Responds with 200 OK", func() {
 				Expect(response.Code).To(Equal(200))
 			})
 
