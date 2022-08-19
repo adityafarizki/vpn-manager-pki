@@ -14,11 +14,17 @@ type CertInfo struct {
 	IsCA       bool
 }
 
+type UserCert struct {
+	IsRevoked  bool
+	Cert       *x509.Certificate
+	PrivateKey *rsa.PrivateKey
+}
+
 type CertStorage interface {
 	SaveCRL([]pkix.RevokedCertificate) error
 	GetCRL() ([]pkix.RevokedCertificate, error)
 	SaveCert(privatekey *rsa.PrivateKey, cert *x509.Certificate) error
-	GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, error)
+	GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, bool, error)
 	SaveCA(*rsa.PrivateKey, *x509.Certificate) error
 	GetCA() (*rsa.PrivateKey, *x509.Certificate, error)
 	GetTlsCrypt() (string, error)
@@ -35,8 +41,18 @@ func (cm *CertManager) GetClientList() ([]string, error) {
 	return cm.CertStorage.GetCertList()
 }
 
-func (cm *CertManager) GetClientCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
-	return cm.CertStorage.GetCert(name)
+func (cm *CertManager) GetClientCert(name string) (*UserCert, error) {
+	privKey, cert, isRevoked, err := cm.CertStorage.GetCert(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserCert{
+		IsRevoked:  isRevoked,
+		PrivateKey: privKey,
+		Cert:       cert,
+	}, nil
 }
 
 func (cm *CertManager) GetVpnTemplate() (string, error) {

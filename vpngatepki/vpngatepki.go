@@ -206,7 +206,7 @@ func handleError(err error) error {
 }
 
 func GetUserVPNConfig(user *User) (string, error) {
-	_, _, err := CertMgr.GetClientCert(user.Email)
+	_, err := CertMgr.GetClientCert(user.Email)
 
 	if err != nil {
 		switch err.(type) {
@@ -252,12 +252,12 @@ func RevokeUserAccess(requester *User, targetEmail string) error {
 	if !IsUserAdmin(requester) {
 		return &UnauthorizedError{message: "user is unauthorized to revoke cert"}
 	}
-	_, clientCert, err := CertMgr.GetClientCert(targetEmail)
+	userCert, err := CertMgr.GetClientCert(targetEmail)
 	if err != nil {
 		return handleError(err)
 	}
 
-	err = CertMgr.RevokeCert(clientCert)
+	err = CertMgr.RevokeCert(userCert.Cert)
 	if err != nil {
 		return handleError(err)
 	}

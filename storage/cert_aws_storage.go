@@ -148,30 +148,36 @@ func (cas *CertAWSStorage) SaveCA(privatekey *rsa.PrivateKey, cert *x509.Certifi
 	return nil
 }
 
-func (cas *CertAWSStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, error) {
+func (cas *CertAWSStorage) GetCert(name string) (*rsa.PrivateKey, *x509.Certificate, bool, error) {
 	certFilePath, keyFilePath := cas.cs.GetClientCertPath(name)
 	certObjectKey := fmt.Sprintf("%s/%s_cert.pem", cas.ClientCertDir, name)
 	keyObjectKey := fmt.Sprintf("%s/%s_priv.pem", cas.ClientCertDir, name)
+	isRevoked := false
 
 	err := cas.downloadFile(certFilePath, certObjectKey)
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, nil, &fs.PathError{Path: keyObjectKey, Op: "", Err: err}
+			err := cas.downloadFile(certFilePath, certObjectKey+".revoked")
+			if err != nil {
+				return nil, nil, false, &fs.PathError{Path: certObjectKey, Op: "", Err: err}
+			}
+			isRevoked = true
 		} else {
-			return nil, nil, err
+			return nil, nil, false, err
 		}
 	}
 
 	err = cas.downloadFile(keyFilePath, keyObjectKey)
 	if err != nil {
 		if strings.Contains(err.Error(), "StatusCode: 404") {
-			return nil, nil, &fs.PathError{Path: keyObjectKey, Op: "", Err: err}
+			return nil, nil, false, &fs.PathError{Path: keyObjectKey, Op: "", Err: err}
 		} else {
-			return nil, nil, err
+			return nil, nil, false, err
 		}
 	}
 
-	return cas.cs.GetCert(name)
+	privKey, cert, err := cas.cs.GetCert(name)
+	return privKey, cert, isRevoked, err
 }
 
 func (cas *CertAWSStorage) GetCA() (*rsa.PrivateKey, *x509.Certificate, error) {

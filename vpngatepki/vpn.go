@@ -15,7 +15,7 @@ type VPNSettings struct {
 }
 
 func GenerateVPNConfig(name string, cm *CertManager, settings *VPNSettings) (string, error) {
-	key, cert, err := cm.GetClientCert(name)
+	userCert, err := cm.GetClientCert(name)
 	if err != nil {
 		return "", err
 	}
@@ -25,8 +25,8 @@ func GenerateVPNConfig(name string, cm *CertManager, settings *VPNSettings) (str
 		return "", err
 	}
 
-	pemCert := certToPemFormat(cert)
-	pemKey := keyToPemFormat(key)
+	pemCert := certToPemFormat(userCert.Cert)
+	pemKey := keyToPemFormat(userCert.PrivateKey)
 	pemCA := certToPemFormat(ca)
 	remoteLine := fmt.Sprintf("remote %s 1194", settings.ServerIPAddress)
 

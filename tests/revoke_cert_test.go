@@ -3,7 +3,6 @@ package vpngatepki_test
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -128,7 +127,6 @@ var _ = Describe("revoke user cert", Ordered, func() {
 					})
 
 					It("Responds with status 200 OK", func() {
-						fmt.Println(response.Body)
 						Expect(response.Code).To(Equal(200))
 					})
 
@@ -146,13 +144,10 @@ var _ = Describe("revoke user cert", Ordered, func() {
 						Expect(crlGob).To(Equal(userGob))
 					})
 
-					It("Appends '.revoked' to user's cert file", func() {
-						client, err := getAwsS3Client()
+					It("Mark user's cert as being revoked", func() {
+						cert, err := vpn.CertMgr.GetClientCert(user.Email)
 						Expect(err).To(BeNil())
-
-						clientPath := fmt.Sprintf("clients/%s_cert.pem.revoked", user.Email)
-						_, err = getObject(client, vpn.Config.S3BucketName, clientPath)
-						Expect(err).To(BeNil())
+						Expect(cert.IsRevoked).To(BeTrue())
 					})
 				})
 			})
