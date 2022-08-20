@@ -257,9 +257,11 @@ func RevokeUserAccess(requester *User, targetEmail string) error {
 		return handleError(err)
 	}
 
-	err = CertMgr.RevokeCert(userCert.Cert)
-	if err != nil {
-		return handleError(err)
+	if !userCert.IsRevoked {
+		err = CertMgr.RevokeCert(userCert.Cert)
+		if err != nil {
+			return handleError(err)
+		}
 	}
 
 	return nil
