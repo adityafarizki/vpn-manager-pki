@@ -230,19 +230,19 @@ func IsUserAdmin(user *User) bool {
 	return false
 }
 
-func GetUsersList(user *User) ([]User, error) {
+func GetUsersList(user *User) ([]*storage.UserListEntry, error) {
 	if !IsUserAdmin(user) {
-		return nil, errors.New("user is unauthorized to lists registered users")
+		return nil, &UnauthorizedError{message: "user is unauthorized to lists registered users"}
 	}
 
-	userEmails, err := CertMgr.GetClientList()
+	usersCert, err := CertMgr.GetClientList()
 	if err != nil {
-		return nil, err
+		return nil, handleError(err)
 	}
 
-	users := []User{}
-	for _, email := range userEmails {
-		users = append(users, User{Email: email})
+	users := []*storage.UserListEntry{}
+	for _, user := range usersCert {
+		users = append(users, &storage.UserListEntry{Email: user.Email, IsRevoked: user.IsRevoked})
 	}
 
 	return users, nil

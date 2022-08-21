@@ -48,15 +48,21 @@ func NewCertAWSStorage(caFileDir string, clientCertDir string, bucketName string
 	return cas, nil
 }
 
-func (cas *CertAWSStorage) GetCertList() ([]string, error) {
+// File naming structure would be {username}_cert.pem{|.revoked}
+func (cas *CertAWSStorage) GetCertList() ([]*UserListEntry, error) {
 	objList, err := cas.listFiles(cas.ClientCertDir)
 	if err != nil {
 		return nil, err
 	}
 
-	certList := []string{}
-	suffixLength := len("_cert.pem")
+	certList := []*UserListEntry{}
+	certSuffix := "_cert.pem"
+	revokedSuffix := ".revoked"
+
+	suffixLength := len(certSuffix)
 	prefixLength := len(cas.ClientCertDir + "/")
+	revokedSuffixLength := len(revokedSuffix)
+
 	for _, obj := range objList {
 		keyLen := len(obj)
 		if keyLen < prefixLength+suffixLength {
@@ -64,10 +70,21 @@ func (cas *CertAWSStorage) GetCertList() ([]string, error) {
 		}
 
 		left := keyLen - suffixLength
+		leftRevoked := keyLen - revokedSuffixLength
 		right := keyLen
 
-		if obj[left:right] == "_cert.pem" {
-			certList = append(certList, obj[prefixLength:left])
+		if obj[left:right] == certSuffix {
+			userEmail := obj[prefixLength:left]
+			certList = append(certList, &UserListEntry{
+				Email:     userEmail,
+				IsRevoked: false,
+			})
+		} else if obj[leftRevoked:right] == revokedSuffix {
+			userEmail := obj[prefixLength:(leftRevoked - prefixLength - 1)]
+			certList = append(certList, &UserListEntry{
+				Email:     userEmail,
+				IsRevoked: true,
+			})
 		}
 	}
 

@@ -14,7 +14,7 @@ import (
 	vpn "github.com/adityafarizki/vpn-gate-pki/vpngatepki"
 )
 
-var _ = Describe("create vpn user", Ordered, func() {
+var _ = Describe("Get user's vpn config", Ordered, func() {
 	var ginRouter *gin.Engine
 	BeforeAll(func() {
 		gin.DefaultWriter = io.Discard

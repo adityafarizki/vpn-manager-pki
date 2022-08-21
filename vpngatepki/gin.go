@@ -83,7 +83,7 @@ func ginGetUserVPNConfig(ctx *gin.Context) {
 
 	vpnConfig, err := GetUserVPNConfig(user)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "generating user vpn config failed, " + err.Error()})
+		ctx.Error(err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func ginGetUsersList(ctx *gin.Context) {
 
 	usersList, err := GetUsersList(user)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "getting users list failed, " + err.Error()})
+		ctx.Error(err)
 		return
 	}
 

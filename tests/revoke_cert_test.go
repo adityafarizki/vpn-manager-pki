@@ -1,7 +1,6 @@
 package vpngatepki_test
 
 import (
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"io"
 	"net/http"
@@ -90,7 +89,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 
 		Describe("Given user cert exists", func() {
 			var user *vpn.User
-			var userCert *x509.Certificate
+			var userCert *vpn.UserCert
 			BeforeAll(func() {
 				user = generateRandomUser("", "")
 
@@ -110,11 +109,11 @@ var _ = Describe("revoke user cert", Ordered, func() {
 				BeforeAll(func() {
 					vpn.CertMgr.CertStorage.SaveCRL([]pkix.RevokedCertificate{
 						{
-							SerialNumber:   userCert.SerialNumber,
+							SerialNumber:   userCert.Cert.SerialNumber,
 							RevocationTime: time.Now(),
 						},
 					})
-					vpn.CertMgr.CertStorage.MarkRevoked(userCert)
+					vpn.CertMgr.CertStorage.MarkRevoked(userCert.Cert)
 				})
 
 				AfterAll(func() {
@@ -154,7 +153,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 						crlGob, err := crl[0].SerialNumber.GobEncode()
 						Expect(err).To(BeNil())
 
-						userGob, err := userCert.SerialNumber.GobEncode()
+						userGob, err := userCert.Cert.SerialNumber.GobEncode()
 						Expect(err).To(BeNil())
 
 						Expect(crlGob).To(Equal(userGob))
@@ -200,7 +199,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 						crlGob, err := crl[0].SerialNumber.GobEncode()
 						Expect(err).To(BeNil())
 
-						userGob, err := userCert.SerialNumber.GobEncode()
+						userGob, err := userCert.Cert.SerialNumber.GobEncode()
 						Expect(err).To(BeNil())
 
 						Expect(crlGob).To(Equal(userGob))

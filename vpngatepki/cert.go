@@ -7,6 +7,8 @@ import (
 	"crypto/x509/pkix"
 	"math/big"
 	"time"
+
+	"github.com/adityafarizki/vpn-gate-pki/storage"
 )
 
 type CertInfo struct {
@@ -29,7 +31,7 @@ type CertStorage interface {
 	GetCA() (*rsa.PrivateKey, *x509.Certificate, error)
 	GetTlsCrypt() (string, error)
 	GetVpnTemplate() (string, error)
-	GetCertList() ([]string, error)
+	GetCertList() ([]*storage.UserListEntry, error)
 	MarkRevoked(*x509.Certificate) error
 }
 
@@ -37,7 +39,7 @@ type CertManager struct {
 	CertStorage CertStorage
 }
 
-func (cm *CertManager) GetClientList() ([]string, error) {
+func (cm *CertManager) GetClientList() ([]*storage.UserListEntry, error) {
 	return cm.CertStorage.GetCertList()
 }
 
@@ -67,7 +69,7 @@ func (cm *CertManager) GetTlsCrypt() (string, error) {
 	return cm.CertStorage.GetTlsCrypt()
 }
 
-func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, error) {
+func (cm *CertManager) CreateNewClientCert(name string) (*UserCert, error) {
 	caPrivKey, ca, err := cm.CertStorage.GetCA()
 	if err != nil {
 		return nil, err
@@ -98,7 +100,11 @@ func (cm *CertManager) CreateNewClientCert(name string) (*x509.Certificate, erro
 		return nil, err
 	}
 
-	return clientCert, nil
+	return &UserCert{
+		Cert:       clientCert,
+		PrivateKey: privateKey,
+		IsRevoked:  false,
+	}, nil
 }
 
 func (cm *CertManager) RevokeCert(cert *x509.Certificate) error {
