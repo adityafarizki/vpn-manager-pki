@@ -323,9 +323,9 @@ func (cas *CertAWSStorage) listFiles(path string) ([]string, error) {
 		return nil, err
 	}
 
-	objKeyList := []string{}
-	for _, obj := range resp.Contents {
-		objKeyList = append(objKeyList, *obj.Key)
+	objKeyList := make([]string, len(resp.Contents))
+	for i, obj := range resp.Contents {
+		objKeyList[i] = *obj.Key
 	}
 
 	return objKeyList, nil

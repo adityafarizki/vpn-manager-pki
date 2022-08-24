@@ -240,9 +240,9 @@ func GetUsersList(user *User) ([]*storage.UserListEntry, error) {
 		return nil, handleError(err)
 	}
 
-	users := []*storage.UserListEntry{}
-	for _, user := range usersCert {
-		users = append(users, &storage.UserListEntry{Email: user.Email, IsRevoked: user.IsRevoked})
+	users := make([]*storage.UserListEntry, len(usersCert))
+	for i, user := range usersCert {
+		users[i] = &storage.UserListEntry{Email: user.Email, IsRevoked: user.IsRevoked}
 	}
 
 	return users, nil
