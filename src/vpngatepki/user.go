@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
 	"net/http"
 
@@ -17,52 +16,9 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-var Config *AppConfig
-var AuthCerts map[string]*rsa.PublicKey
-var CertMgr *CertManager
-var VpnSettings *VPNSettings
-
-func Bootstrap() error {
-	var err error
-	Config = loadConfig()
-	AuthCerts, err = fetchAuthCerts(Config.CertUrl)
-	if err != nil {
-		return errors.New("Initializing auth cert error: " + err.Error())
-	}
-
-	cs, err := storage.NewCertAWSStorage("ca", "clients", Config.S3BucketName)
-	if err != nil {
-		return errors.New("Intializing storage error: " + err.Error())
-	}
-
-	CertMgr = &CertManager{CertStorage: cs}
-
-	VpnSettings, err = initializeVPNSettings(CertMgr)
-	if err != nil {
-		return errors.New("Intializing vpn settings error: " + err.Error())
-	}
-
-	return nil
-}
-
-func initializeVPNSettings(CertMgr *CertManager) (*VPNSettings, error) {
-	vpnTemplate, err := CertMgr.GetVpnTemplate()
-	if err != nil {
-		return nil, err
-	}
-
-	tlsCrypt, err := CertMgr.GetTlsCrypt()
-	if err != nil {
-		return nil, err
-	}
-
-	VpnSettings = &VPNSettings{
-		ServerIPAddress: Config.VPNIPAdress,
-		Template:        vpnTemplate,
-		TlsCrypt:        tlsCrypt,
-	}
-
-	return VpnSettings, nil
+type User struct {
+	Email string
+	Sub   string
 }
 
 func fetchAuthCerts(certUrl string) (map[string]*rsa.PublicKey, error) {
@@ -196,30 +152,6 @@ func authenticateUserToken(token string) (*User, error) {
 	return user, nil
 }
 
-func handleError(err error) error {
-	switch err.(type) {
-	case *fs.PathError:
-		return &NotFoundError{message: err.Error()}
-	default:
-		return err
-	}
-}
-
-func GetUserVPNConfig(user *User) (string, error) {
-	_, err := CertMgr.GetClientCert(user.Email)
-
-	if err != nil {
-		switch err.(type) {
-		case *fs.PathError:
-			CertMgr.CreateNewClientCert(user.Email)
-		default:
-			return "", nil
-		}
-	}
-
-	return GenerateVPNConfig(user.Email, CertMgr, VpnSettings)
-}
-
 func IsUserAdmin(user *User) bool {
 	for _, admin := range Config.AdminList {
 		if user.Email == admin {
@@ -265,8 +197,4 @@ func RevokeUserAccess(requester *User, targetEmail string) error {
 	}
 
 	return nil
-}
-
-func InitPKI() error {
-	return CertMgr.InitPKI()
 }

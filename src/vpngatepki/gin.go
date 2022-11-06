@@ -2,6 +2,7 @@ package vpngatepki
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -33,6 +34,7 @@ func errorHandler(ctx *gin.Context) {
 
 func login(ctx *gin.Context) {
 	authUrl := getAuthUrl()
+	fmt.Print(ctx.Request.Header)
 	ctx.PureJSON(http.StatusOK, gin.H{
 		"authUrl": authUrl,
 	})

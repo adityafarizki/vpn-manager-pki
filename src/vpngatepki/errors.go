@@ -1,5 +1,7 @@
 package vpngatepki
 
+import "io/fs"
+
 func getErrorCode(err error) int {
 	switch err.(type) {
 	case *NotFoundError:
@@ -8,6 +10,15 @@ func getErrorCode(err error) int {
 		return 403
 	default:
 		return 400
+	}
+}
+
+func handleError(err error) error {
+	switch err.(type) {
+	case *fs.PathError:
+		return &NotFoundError{message: err.Error()}
+	default:
+		return err
 	}
 }
 

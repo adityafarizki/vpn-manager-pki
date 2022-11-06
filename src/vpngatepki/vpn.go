@@ -6,12 +6,28 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/fs"
 )
 
 type VPNSettings struct {
 	ServerIPAddress string
 	TlsCrypt        string
 	Template        string
+}
+
+func GetUserVPNConfig(user *User) (string, error) {
+	_, err := CertMgr.GetClientCert(user.Email)
+
+	if err != nil {
+		switch err.(type) {
+		case *fs.PathError:
+			CertMgr.CreateNewClientCert(user.Email)
+		default:
+			return "", nil
+		}
+	}
+
+	return GenerateVPNConfig(user.Email, CertMgr, VpnSettings)
 }
 
 func GenerateVPNConfig(name string, cm *CertManager, settings *VPNSettings) (string, error) {
@@ -40,6 +56,26 @@ func GenerateVPNConfig(name string, cm *CertManager, settings *VPNSettings) (str
 		settings.TlsCrypt,
 	)
 	return config, nil
+}
+
+func initializeVPNSettings(CertMgr *CertManager) (*VPNSettings, error) {
+	vpnTemplate, err := CertMgr.GetVpnTemplate()
+	if err != nil {
+		return nil, err
+	}
+
+	tlsCrypt, err := CertMgr.GetTlsCrypt()
+	if err != nil {
+		return nil, err
+	}
+
+	VpnSettings = &VPNSettings{
+		ServerIPAddress: Config.VPNIPAdress,
+		Template:        vpnTemplate,
+		TlsCrypt:        tlsCrypt,
+	}
+
+	return VpnSettings, nil
 }
 
 func certToPemFormat(cert *x509.Certificate) string {
