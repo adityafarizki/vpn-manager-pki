@@ -17,12 +17,12 @@ func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.Priva
 	certPath := cm.getCertPath(commonName)
 	keyPath := cm.getKeyPath(commonName)
 
-	certBinary, err := cm.certStorage.GetFile(certPath)
+	certBinary, err := cm.CertStorage.GetFile(certPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}
 
-	keyBinary, err := cm.certStorage.GetFile(keyPath)
+	keyBinary, err := cm.CertStorage.GetFile(keyPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}
@@ -41,7 +41,11 @@ func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.Priva
 }
 
 func (cm *CertManager) GenerateCert(commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	ca, caKey, err := cm.getCA()
+	ca, caKey, err := cm.GetRootCert()
+	if err != nil {
+		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
+	}
+
 	certTemplate, err := cm.getCertTemplate(false, commonName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
@@ -68,7 +72,7 @@ func (cm *CertManager) GenerateCert(commonName string) (*x509.Certificate, *rsa.
 		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
 	}
 
-	err = cm.certStorage.SaveFile(certPath, certPem)
+	err = cm.CertStorage.SaveFile(certPath, certPem)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
 	}
@@ -79,7 +83,7 @@ func (cm *CertManager) GenerateCert(commonName string) (*x509.Certificate, *rsa.
 		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
 	}
 
-	err = cm.certStorage.SaveFile(keyPath, keyPem)
+	err = cm.CertStorage.SaveFile(keyPath, keyPem)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GenerateCert error: %w", err)
 	}
@@ -112,9 +116,24 @@ func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 	return nil
 }
 
+func (cm *CertManager) IsCertRevoked(userCert *x509.Certificate) (bool, error) {
+	crl, err := cm.getCrl()
+	if err != nil {
+		return true, fmt.Errorf("check IsRevoked error: %w", err)
+	}
+
+	for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
+		if revokedCert.SerialNumber == userCert.SerialNumber {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (cm *CertManager) getCrl() (*pkix.CertificateList, error) {
 	crlPath := cm.getCrlPath()
-	crlBinary, err := cm.certStorage.GetFile(crlPath)
+	crlBinary, err := cm.CertStorage.GetFile(crlPath)
 	if err != nil {
 		return nil, fmt.Errorf("Get CRL error: %w", err)
 	}
@@ -129,7 +148,7 @@ func (cm *CertManager) getCrl() (*pkix.CertificateList, error) {
 }
 
 func (cm *CertManager) saveCrl(crl *pkix.CertificateList) error {
-	ca, caKey, err := cm.getCA()
+	ca, caKey, err := cm.GetRootCert()
 	if err != nil {
 		return fmt.Errorf("Save CRL error: %w", err)
 	}
@@ -156,7 +175,7 @@ func (cm *CertManager) saveCrl(crl *pkix.CertificateList) error {
 		return fmt.Errorf("Save CRL error: %w", err)
 	}
 
-	err = cm.certStorage.SaveFile(cm.getCrlPath(), crlPemBytesBuffer.Bytes())
+	err = cm.CertStorage.SaveFile(cm.getCrlPath(), crlPemBytesBuffer.Bytes())
 	if err != nil {
 		return fmt.Errorf("Save CRL error: %w", err)
 	}
@@ -165,7 +184,7 @@ func (cm *CertManager) saveCrl(crl *pkix.CertificateList) error {
 }
 
 func (cm *CertManager) ListCertsCommonName() ([]string, error) {
-	commonNameList, err := cm.certStorage.ListDir(cm.UserCertDirPath + "/")
+	commonNameList, err := cm.CertStorage.ListDir(cm.UserCertDirPath + "/")
 	if err != nil {
 		return nil, fmt.Errorf("List certs common name error: %w", err)
 	}
@@ -242,16 +261,16 @@ func (cm *CertManager) handleError(err error) error {
 	return err
 }
 
-func (cm *CertManager) getCA() (*x509.Certificate, *rsa.PrivateKey, error) {
+func (cm *CertManager) GetRootCert() (*x509.Certificate, *rsa.PrivateKey, error) {
 	caCertPath := fmt.Sprintf("%s/ca_cert.pem", cm.CaDirPath)
 	caKeyPath := fmt.Sprintf("%s/ca_key.pem", cm.CaDirPath)
 
-	certBinary, err := cm.certStorage.GetFile(caCertPath)
+	certBinary, err := cm.CertStorage.GetFile(caCertPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}
 
-	keyBinary, err := cm.certStorage.GetFile(caKeyPath)
+	keyBinary, err := cm.CertStorage.GetFile(caKeyPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}

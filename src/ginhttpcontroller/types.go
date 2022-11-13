@@ -8,8 +8,14 @@ import (
 )
 
 type GinHttpController struct {
-	authInstance oidcauth.OidcAuthService
-	vpnManager   vpnmanager.VpnManagerService
-	userService  user.UserService
-	router       *gin.Engine
+	authInstance *oidcauth.OidcAuthService
+	vpnManager   *vpnmanager.VpnManagerService
+	userService  *user.UserService
+	Router       *gin.Engine
+}
+
+type NewGinHttpControllerParam struct {
+	AuthInstance *oidcauth.OidcAuthService
+	VpnManager   *vpnmanager.VpnManagerService
+	UserService  *user.UserService
 }

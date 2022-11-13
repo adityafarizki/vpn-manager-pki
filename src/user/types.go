@@ -5,6 +5,6 @@ type User struct {
 }
 
 type UserService struct {
-	certManager IUserCertManager
-	adminList   []string
+	CertManager IUserCertManager
+	AdminList   []string
 }

@@ -6,21 +6,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
 	"github.com/adityafarizki/vpn-gate-pki/user"
-	"github.com/adityafarizki/vpn-gate-pki/vpnmanager"
 	"github.com/gin-gonic/gin"
 )
 
 func NewGinHttpController(
-	authInstance oidcauth.OidcAuthService,
-	vpnManager vpnmanager.VpnManagerService,
-	userService user.UserService,
+	param *NewGinHttpControllerParam,
 ) *GinHttpController {
 	controller := &GinHttpController{
-		authInstance: authInstance,
-		vpnManager:   vpnManager,
-		router:       gin.Default(),
+		authInstance: param.AuthInstance,
+		vpnManager:   param.VpnManager,
+		userService:  param.UserService,
+		Router:       gin.Default(),
 	}
 	controller.buildRoute()
 
@@ -28,12 +25,12 @@ func NewGinHttpController(
 }
 
 func (controller *GinHttpController) buildRoute() {
-	controller.router.GET("/", controller.login)
-	controller.router.GET("/login", controller.login)
-	controller.router.GET("/oidc-code-auth", controller.oidcCodeAuth)
-	controller.router.GET("/vpn-config", controller.getUserVpnConfig)
-	controller.router.GET("/users", controller.getUsers)
-	controller.router.DELETE("/user/:email", controller.revokeUserAccess)
+	controller.Router.GET("/", controller.login)
+	controller.Router.GET("/login", controller.login)
+	controller.Router.GET("/oidc-code-auth", controller.oidcCodeAuth)
+	controller.Router.GET("/vpn-config", controller.getUserVpnConfig)
+	controller.Router.GET("/users", controller.getUsers)
+	controller.Router.DELETE("/user/:email", controller.revokeUserAccess)
 }
 
 func (controller *GinHttpController) login(ctx *gin.Context) {
