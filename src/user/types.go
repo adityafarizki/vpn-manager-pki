@@ -1,7 +1,8 @@
 package user
 
 type User struct {
-	Email string
+	Email     string
+	IsRevoked bool
 }
 
 type UserService struct {

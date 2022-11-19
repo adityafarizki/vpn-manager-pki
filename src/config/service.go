@@ -18,17 +18,22 @@ func ConfigFromEnv() (*Config, error) {
 		varType := configReflection.Type().Field(i).Type
 		field := configReflection.FieldByName(varName)
 		envName := getEnvName(varName)
+		envVal := os.Getenv(envName)
+
+		if envVal == "" {
+			return nil, fmt.Errorf("error env param %s required", envName)
+		}
 
 		if varType.Name() == "string" {
-			field.SetString(os.Getenv(envName))
+			field.SetString(envVal)
 		} else if varType.String() == "[]string" {
 			var val []string
-			json.Unmarshal([]byte(os.Getenv(envName)), &val)
+			json.Unmarshal([]byte(envVal), &val)
 			fmt.Println(os.Getenv(strings.ToUpper(varName)))
 			field.Set(reflect.ValueOf(val))
 		} else if varType.String() == "bool" {
 			var val bool
-			json.Unmarshal([]byte(os.Getenv(envName)), &val)
+			json.Unmarshal([]byte(envVal), &val)
 			fmt.Println(os.Getenv(strings.ToUpper(varName)))
 			field.Set(reflect.ValueOf(val))
 		} else {

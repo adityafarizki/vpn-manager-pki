@@ -26,9 +26,21 @@ func (userService *UserService) GetUsersList() ([]*User, error) {
 		return nil, fmt.Errorf("getting user list error: %w", err)
 	}
 
+	revokedUsersList, err := userService.CertManager.GetRevokedList()
+	if err != nil {
+		return nil, fmt.Errorf("getting user list error: %w", err)
+	}
+
 	users := make([]*User, len(usersCommonName))
 	for i, userName := range usersCommonName {
-		users[i] = &User{Email: userName}
+		isRevoked := false
+		for _, revokedUser := range revokedUsersList {
+			if userName == revokedUser {
+				isRevoked = true
+				break
+			}
+		}
+		users[i] = &User{Email: userName, IsRevoked: isRevoked}
 	}
 
 	return users, nil

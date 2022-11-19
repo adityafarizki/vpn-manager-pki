@@ -1,4 +1,4 @@
-package httpcontroller
+package ginhttpcontroller
 
 import (
 	"errors"
@@ -113,7 +113,7 @@ func (controller *GinHttpController) getUsers(ctx *gin.Context) {
 
 	err = controller.authorizeAction(user, "GetUsersList")
 	if err != nil {
-		responseCode := http.StatusUnauthorized
+		responseCode := http.StatusForbidden
 		responseBody := gin.H{"message": "Unauthorized to do action GetUsersList"}
 		ctx.PureJSON(responseCode, responseBody)
 		return

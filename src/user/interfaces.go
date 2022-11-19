@@ -11,4 +11,5 @@ type IUserCertManager interface {
 	RevokeCert(userCert *x509.Certificate) error
 	IsCertRevoked(userCert *x509.Certificate) (bool, error)
 	ListCertsCommonName() ([]string, error)
+	GetRevokedList() ([]string, error)
 }

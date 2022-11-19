@@ -1,4 +1,4 @@
-package httpcontroller
+package ginhttpcontroller
 
 import "io/fs"
 

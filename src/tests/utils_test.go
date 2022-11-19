@@ -2,6 +2,7 @@ package vpngatepki_test
 
 import (
 	"context"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"io/ioutil"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	vpn "github.com/adityafarizki/vpn-gate-pki/vpngatepki"
+	"github.com/adityafarizki/vpn-gate-pki/user"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -64,8 +65,9 @@ func listBucketObjects(client *s3.Client, bucket string, dir string) ([]string, 
 		if err != nil {
 			return nil, err
 		}
-		for _, obj := range response.Contents {
-			result = append(result, *obj.Key)
+		result = make([]string, len(response.Contents))
+		for i, obj := range response.Contents {
+			result[i] = *obj.Key
 		}
 
 		nextToken = response.NextContinuationToken
@@ -119,7 +121,7 @@ func randomString(length int) string {
 	return string(result)
 }
 
-func generateRandomUser(email string, sub string) *vpn.User {
+func generateRandomUser(email string, sub string) *user.User {
 	if email == "" {
 		email = randomString(10) + "@" + randomString(8) + ".com"
 	}
@@ -128,31 +130,30 @@ func generateRandomUser(email string, sub string) *vpn.User {
 		sub = uuid.NewString()
 	}
 
-	return &vpn.User{
+	return &user.User{
 		Email: email,
-		Sub:   sub,
 	}
 }
 
-func buildUserJWT(user *vpn.User) (string, error) {
+func buildUserJWT(user *user.User, keyId string, privkey *rsa.PrivateKey) (string, error) {
 	var result string
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iss":            "https://accounts.google.com",
 		"azp":            randomString(40),
 		"aud":            randomString(40),
-		"sub":            user.Sub,
+		"sub":            user.Email,
 		"email":          user.Email,
 		"email_verified": true,
 		"iat":            time.Now().Unix(),
 		"exp":            time.Now().Unix() + 3600,
 	})
 	token.Header = map[string]interface{}{
-		"kid": jwtKeyId,
+		"kid": keyId,
 		"typ": "JWT",
 		"alg": "RS256",
 	}
-	result, err := token.SignedString(jwtPrivKey)
+	result, err := token.SignedString(privkey)
 	if err != nil {
 		return "", err
 	}

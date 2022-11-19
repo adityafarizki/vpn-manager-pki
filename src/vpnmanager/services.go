@@ -7,14 +7,16 @@ import (
 )
 
 func NewVpnManagerFromStorage(param *NewVpnManagerFromStorageParam) (*VpnManagerService, error) {
-	tlsCrypt, err := param.Storage.GetFile(param.ConfigBasePath + "/tls-crypt.pem")
+	tlsCryptPath := param.ConfigBasePath + "/tls_crypt.pem"
+	tlsCrypt, err := param.Storage.GetFile(tlsCryptPath)
 	if err != nil {
-		return nil, fmt.Errorf("error creating vpn manager: %w", err)
+		return nil, fmt.Errorf("error creating vpn manager: %w "+tlsCryptPath, err)
 	}
 
-	template, err := param.Storage.GetFile(param.ConfigBasePath + "/template.ovpn")
+	templatePath := param.ConfigBasePath + "/template.ovpn"
+	template, err := param.Storage.GetFile(templatePath)
 	if err != nil {
-		return nil, fmt.Errorf("error creating vpn manager: %w", err)
+		return nil, fmt.Errorf("error creating vpn manager: %w "+templatePath, err)
 	}
 
 	return &VpnManagerService{

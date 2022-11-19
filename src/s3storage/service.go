@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -56,17 +57,29 @@ func (storage *S3Storage) SaveFile(path string, data []byte) error {
 }
 
 func (storage *S3Storage) ListDir(path string) ([]string, error) {
+	if string(path[len(path)-1]) != "/" {
+		path = path + "/"
+	}
+	delimiter := "/"
 	response, err := storage.client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
-		Bucket: &storage.BucketName,
-		Prefix: &path,
+		Bucket:    &storage.BucketName,
+		Prefix:    &path,
+		Delimiter: &delimiter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("s3 ListDir error: %w", err)
 	}
 
-	result := make([]string, len(response.Contents))
+	result := make([]string, len(response.Contents)+len(response.CommonPrefixes))
+	for i, prefix := range response.CommonPrefixes {
+		result[i] = string((*prefix.Prefix)[len(path):])
+		result[i] = strings.ReplaceAll(result[i], "/", "")
+	}
+
 	for i, object := range response.Contents {
-		result[i] = *object.Key
+		index := i + len(response.CommonPrefixes)
+		result[index] = string((*object.Key)[len(path):])
+		result[index] = strings.ReplaceAll(result[index], "/", "")
 	}
 
 	return result, nil

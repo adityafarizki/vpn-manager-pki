@@ -9,5 +9,6 @@ type Config struct {
 	OidcRedirectUrl  string
 	StorageBucket    string
 	VpnIpAddress     string
+	DeploymentEnv    string
 	AdminEmailList   []string
 }

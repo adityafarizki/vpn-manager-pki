@@ -1,4 +1,4 @@
-package httpcontroller
+package ginhttpcontroller
 
 import (
 	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
