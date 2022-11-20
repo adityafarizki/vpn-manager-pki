@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/adityafarizki/vpn-gate-pki/certmanager"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
@@ -31,7 +32,12 @@ func (storage *S3Storage) GetFile(path string) ([]byte, error) {
 		Key:    &path,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("s3 GetFile error: %w", err)
+		if strings.Contains(err.Error(), "NoSuchKey") {
+			message := fmt.Sprintf("s3 GetFile error: key %s: %s", path, err.Error())
+			return nil, certmanager.NotFoundError{Message: message}
+		} else {
+			return nil, fmt.Errorf("s3 GetFile error: key %s: %w", path, err)
+		}
 	}
 
 	file, err := io.ReadAll(response.Body)

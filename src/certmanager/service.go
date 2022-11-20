@@ -11,6 +11,8 @@ import (
 	"io"
 	"math/big"
 	"time"
+
+	"github.com/adityafarizki/vpn-gate-pki/user"
 )
 
 func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -19,6 +21,10 @@ func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.Priva
 
 	certBinary, err := cm.CertStorage.GetFile(certPath)
 	if err != nil {
+		if serr, ok := err.(NotFoundError); ok {
+			errMessage := fmt.Sprintf("GetCert error: %s", serr.Error())
+			return nil, nil, user.NotFoundError{Message: errMessage}
+		}
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}
 
@@ -98,7 +104,7 @@ func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 	}
 
 	for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
-		if revokedCert.SerialNumber == userCert.SerialNumber {
+		if revokedCert.SerialNumber.Cmp(userCert.SerialNumber) == 0 {
 			return nil
 		}
 	}
@@ -115,6 +121,7 @@ func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 
 	err = cm.CertStorage.SaveFile(cm.getRevokedCertNamePath()+userCert.Subject.CommonName, []byte("revoked"))
 	// Might result in inconsistent state when crl is updated but revoked list is not
+	// Should be handled later
 	if err != nil {
 		return fmt.Errorf("Revoke cert error: %w", err)
 	}
@@ -286,22 +293,22 @@ func (cm *CertManager) GetRootCert() (*x509.Certificate, *rsa.PrivateKey, error)
 
 	certBinary, err := cm.CertStorage.GetFile(caCertPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetCert error: %w", err)
+		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
 	}
 
 	keyBinary, err := cm.CertStorage.GetFile(caKeyPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetCert error: %w", err)
+		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
 	}
 
 	cert, err := cm.PemToCert(certBinary)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetCert error: %w", err)
+		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
 	}
 
 	key, err := cm.PemToKey(keyBinary)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetCert error: %w", err)
+		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
 	}
 
 	return cert, key, nil

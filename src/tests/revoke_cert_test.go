@@ -1,217 +1,209 @@
 package vpngatepki_test
 
-// import (
-// 	"crypto/x509/pkix"
-// 	"io"
-// 	"net/http"
-// 	"net/http/httptest"
-// 	"time"
+import (
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 
-// 	"github.com/gin-gonic/gin"
-// 	. "github.com/onsi/ginkgo/v2"
-// 	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
-// 	vpn "github.com/adityafarizki/vpn-gate-pki/vpngatepki"
-// )
+	"github.com/adityafarizki/vpn-gate-pki/config"
+	"github.com/adityafarizki/vpn-gate-pki/user"
+)
 
-// var _ = Describe("revoke user cert", Ordered, func() {
-// 	var ginRouter *gin.Engine
-// 	BeforeAll(func() {
-// 		gin.DefaultWriter = io.Discard
-// 		ginRouter = vpn.BuildGinRouter()
-// 	})
+var _ = Describe("revoke user cert", Ordered, func() {
+	var testFixture *TestFixture
+	BeforeAll(func() {
+		var err error
+		config, err := config.ConfigFromEnv()
+		Expect(err).To(BeNil())
 
-// 	Context("Given requester is not admin", func() {
-// 		var user *vpn.User
-// 		BeforeAll(func() {
-// 			user = generateRandomUser("", "")
-// 			vpn.Config.AdminList = []string{}
-// 		})
+		testFixture, err = Bootstrap(config)
+		Expect(err).To(BeNil())
+	})
 
-// 		When("The requester request to revoke a user cert", func() {
-// 			var response *httptest.ResponseRecorder
-// 			BeforeAll(func() {
-// 				userJwt, err := buildUserJWT(user)
-// 				Expect(err).To(BeNil())
+	Context("Given requester is not admin", func() {
+		var user *user.User
+		BeforeAll(func() {
+			user = generateRandomUser("", "")
+			testFixture.UserService.AdminList = []string{}
+		})
 
-// 				req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
-// 				Expect(err).To(BeNil())
+		When("The requester request to revoke a user cert", func() {
+			var response *httptest.ResponseRecorder
+			BeforeAll(func() {
+				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
+				Expect(err).To(BeNil())
 
-// 				req.Header = map[string][]string{
-// 					"Authorization": {"bearer " + userJwt},
-// 				}
-// 				response = httptest.NewRecorder()
-// 				ginRouter.ServeHTTP(response, req)
-// 			})
+				req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+				Expect(err).To(BeNil())
 
-// 			It("Responds with status 403 Unauthorized", func() {
-// 				Expect(response.Code).To(Equal(403))
-// 			})
-// 		})
-// 	})
+				req.Header = map[string][]string{
+					"Authorization": {"bearer " + userJwt},
+				}
+				response = httptest.NewRecorder()
+				testFixture.Controller.Router.ServeHTTP(response, req)
+			})
 
-// 	Context("Given requester is admin", func() {
-// 		var requester *vpn.User
-// 		BeforeAll(func() {
-// 			requester = generateRandomUser("", "")
-// 			vpn.Config.AdminList = []string{requester.Email}
-// 		})
+			It("Responds with status 403 Unauthorized", func() {
+				Expect(response.Code).To(Equal(403))
+			})
+		})
+	})
 
-// 		AfterAll(func() {
-// 			cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
-// 			vpn.Config.AdminList = []string{}
-// 		})
+	Context("Given requester is admin", func() {
+		var requester *user.User
+		BeforeAll(func() {
+			requester = generateRandomUser("", "")
+			testFixture.UserService.AdminList = []string{requester.Email}
+		})
 
-// 		Describe("Given user cert doesn't exists", func() {
-// 			When("requester send request to revoke user cert", func() {
-// 				var response *httptest.ResponseRecorder
-// 				var user *vpn.User
-// 				BeforeAll(func() {
-// 					user = generateRandomUser("", "")
-// 					requesterJwt, err := buildUserJWT(requester)
-// 					Expect(err).To(BeNil())
+		AfterAll(func() {
+			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+			testFixture.UserService.AdminList = []string{}
+		})
 
-// 					req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
-// 					Expect(err).To(BeNil())
+		Describe("Given user cert doesn't exists", func() {
+			When("requester send request to revoke user cert", func() {
+				var response *httptest.ResponseRecorder
+				var user *user.User
+				BeforeAll(func() {
+					user = generateRandomUser("", "")
+					requesterJwt, err := buildUserJWT(requester, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
+					Expect(err).To(BeNil())
 
-// 					req.Header = map[string][]string{
-// 						"Authorization": {"bearer " + requesterJwt},
-// 					}
-// 					response = httptest.NewRecorder()
-// 					ginRouter.ServeHTTP(response, req)
-// 				})
+					req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+					Expect(err).To(BeNil())
 
-// 				It("Responds with 404 Not Found", func() {
-// 					Expect(response.Code).To(Equal(404))
-// 				})
-// 			})
-// 		})
+					req.Header = map[string][]string{
+						"Authorization": {"bearer " + requesterJwt},
+					}
+					response = httptest.NewRecorder()
+					testFixture.Controller.Router.ServeHTTP(response, req)
+				})
 
-// 		Describe("Given user cert exists", func() {
-// 			var user *vpn.User
-// 			var userCert *vpn.UserCert
-// 			BeforeAll(func() {
-// 				user = generateRandomUser("", "")
+				It("Responds with 404 Not Found", func() {
+					fmt.Println(response)
+					Expect(response.Code).To(Equal(404))
+				})
+			})
+		})
 
-// 				var err error
-// 				userCert, err = vpn.CertMgr.CreateNewClientCert(user.Email)
-// 				Expect(err).To(BeNil())
+		Describe("Given user cert exists", func() {
+			var user *user.User
+			var userCert *x509.Certificate
+			BeforeAll(func() {
+				user = generateRandomUser("", "")
 
-// 				vpn.Config.AdminList = []string{user.Email}
-// 			})
+				var err error
+				userCert, err = testFixture.UserService.GenerateUserCert(user)
+				Expect(err).To(BeNil())
 
-// 			AfterAll(func() {
-// 				vpn.Config.AdminList = []string{}
-// 				cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
-// 			})
+				testFixture.UserService.AdminList = []string{user.Email}
+			})
 
-// 			Describe("Given user cert has been revoked", func() {
-// 				BeforeAll(func() {
-// 					vpn.CertMgr.CertStorage.SaveCRL([]pkix.RevokedCertificate{
-// 						{
-// 							SerialNumber:   userCert.Cert.SerialNumber,
-// 							RevocationTime: time.Now(),
-// 						},
-// 					})
-// 					vpn.CertMgr.CertStorage.MarkRevoked(userCert.Cert)
-// 				})
+			AfterAll(func() {
+				testFixture.UserService.AdminList = []string{}
+				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+				cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+			})
 
-// 				AfterAll(func() {
-// 					vpn.CertMgr.CertStorage.SaveCRL([]pkix.RevokedCertificate{})
-// 					cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
+			Describe("Given user cert has been revoked", func() {
+				BeforeAll(func() {
+					testFixture.UserService.RevokeUserCert(user)
+				})
 
-// 					var err error
-// 					userCert, err = vpn.CertMgr.CreateNewClientCert(user.Email)
-// 					Expect(err).To(BeNil())
-// 				})
+				AfterAll(func() {
+					testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
+					cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+				})
 
-// 				When("Client send request to revoke user's cert", func() {
-// 					var response *httptest.ResponseRecorder
-// 					BeforeAll(func() {
-// 						userJwt, err := buildUserJWT(user)
-// 						Expect(err).To(BeNil())
+				When("Client send request to revoke user's cert", func() {
+					var response *httptest.ResponseRecorder
+					BeforeAll(func() {
+						userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
+						Expect(err).To(BeNil())
 
-// 						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
-// 						Expect(err).To(BeNil())
+						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+						Expect(err).To(BeNil())
 
-// 						req.Header = map[string][]string{
-// 							"Authorization": {"bearer " + userJwt},
-// 						}
-// 						response = httptest.NewRecorder()
-// 						ginRouter.ServeHTTP(response, req)
-// 					})
+						req.Header = map[string][]string{
+							"Authorization": {"bearer " + userJwt},
+						}
+						response = httptest.NewRecorder()
+						testFixture.Controller.Router.ServeHTTP(response, req)
+					})
 
-// 					It("Responds with status 200 OK", func() {
-// 						Expect(response.Code).To(Equal(200))
-// 					})
+					It("Responds with status 200 OK", func() {
+						Expect(response.Code).To(Equal(200))
+					})
 
-// 					It("Keeps the same CRL", func() {
-// 						crl, err := vpn.CertMgr.CertStorage.GetCRL()
-// 						Expect(err).To(BeNil())
-// 						Expect(len(crl)).To(Equal(1))
+					It("Keeps the same CRL", func() {
+						crl, err := testFixture.CertManager.GetCrl()
+						Expect(err).To(BeNil())
 
-// 						crlGob, err := crl[0].SerialNumber.GobEncode()
-// 						Expect(err).To(BeNil())
+						revokedCerts := crl.TBSCertList.RevokedCertificates
+						Expect(len(revokedCerts)).To(Equal(1))
 
-// 						userGob, err := userCert.Cert.SerialNumber.GobEncode()
-// 						Expect(err).To(BeNil())
+						crlGob, err := revokedCerts[0].SerialNumber.GobEncode()
+						Expect(err).To(BeNil())
 
-// 						Expect(crlGob).To(Equal(userGob))
-// 					})
-// 				})
-// 			})
+						userGob, err := userCert.SerialNumber.GobEncode()
+						Expect(err).To(BeNil())
 
-// 			Describe("Given user cert hasn't been revoked", func() {
-// 				When("Client send request to revoke user's cert", func() {
-// 					var response *httptest.ResponseRecorder
-// 					BeforeAll(func() {
-// 						userJwt, err := buildUserJWT(user)
-// 						Expect(err).To(BeNil())
+						Expect(crlGob).To(Equal(userGob))
+					})
+				})
+			})
 
-// 						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
-// 						Expect(err).To(BeNil())
+			Describe("Given user cert hasn't been revoked", func() {
+				When("Client send request to revoke user's cert", func() {
+					var response *httptest.ResponseRecorder
+					BeforeAll(func() {
+						userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
+						Expect(err).To(BeNil())
 
-// 						req.Header = map[string][]string{
-// 							"Authorization": {"bearer " + userJwt},
-// 						}
-// 						response = httptest.NewRecorder()
-// 						ginRouter.ServeHTTP(response, req)
-// 					})
+						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+						Expect(err).To(BeNil())
 
-// 					AfterAll(func() {
-// 						vpn.CertMgr.CertStorage.SaveCRL([]pkix.RevokedCertificate{})
-// 						cleanS3BucketDir(vpn.Config.S3BucketName, "clients")
+						req.Header = map[string][]string{
+							"Authorization": {"bearer " + userJwt},
+						}
+						response = httptest.NewRecorder()
+						testFixture.Controller.Router.ServeHTTP(response, req)
+					})
 
-// 						var err error
-// 						userCert, err = vpn.CertMgr.CreateNewClientCert(user.Email)
-// 						Expect(err).To(BeNil())
-// 					})
+					AfterAll(func() {
+						testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
+						cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+						testFixture.UserService.GenerateUserCert(user)
+					})
 
-// 					It("Responds with status 200 OK", func() {
-// 						Expect(response.Code).To(Equal(200))
-// 					})
+					It("Responds with status 200 OK", func() {
+						Expect(response.Code).To(Equal(200))
+					})
 
-// 					It("Adds user cert to CRL", func() {
-// 						crl, err := vpn.CertMgr.CertStorage.GetCRL()
-// 						Expect(err).To(BeNil())
-// 						Expect(len(crl)).To(Equal(1))
+					It("Adds user cert to CRL", func() {
+						crl, err := testFixture.CertManager.GetCrl()
+						Expect(err).To(BeNil())
 
-// 						crlGob, err := crl[0].SerialNumber.GobEncode()
-// 						Expect(err).To(BeNil())
+						revokedCerts := crl.TBSCertList.RevokedCertificates
+						Expect(len(revokedCerts)).To(Equal(1))
 
-// 						userGob, err := userCert.Cert.SerialNumber.GobEncode()
-// 						Expect(err).To(BeNil())
+						crlGob, err := revokedCerts[0].SerialNumber.GobEncode()
+						Expect(err).To(BeNil())
 
-// 						Expect(crlGob).To(Equal(userGob))
-// 					})
+						userGob, err := userCert.SerialNumber.GobEncode()
+						Expect(err).To(BeNil())
 
-// 					It("Mark user's cert as being revoked", func() {
-// 						cert, err := vpn.CertMgr.GetClientCert(user.Email)
-// 						Expect(err).To(BeNil())
-// 						Expect(cert.IsRevoked).To(BeTrue())
-// 					})
-// 				})
-// 			})
-// 		})
-// 	})
-// })
+						Expect(crlGob).To(Equal(userGob))
+					})
+				})
+			})
+		})
+	})
+})

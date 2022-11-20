@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/adityafarizki/vpn-gate-pki/user"
@@ -138,7 +139,7 @@ func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
 
 	err = controller.authorizeAction(callingUser, "RevokeUserAccess")
 	if err != nil {
-		responseCode := http.StatusUnauthorized
+		responseCode := http.StatusForbidden
 		responseBody := gin.H{"message": "Unauthorized to do action RevokeUserAccess"}
 		ctx.PureJSON(responseCode, responseBody)
 		return
@@ -147,6 +148,14 @@ func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
 	targetEmail := ctx.Param("email")
 	err = controller.userService.RevokeUserCert(&user.User{Email: targetEmail})
 	if err != nil {
+		fmt.Println(reflect.TypeOf(err))
+		fmt.Println(err.Error())
+		if serr, ok := err.(user.NotFoundError); ok {
+			responseCode := http.StatusNotFound
+			responseBody := gin.H{"message": "Revoking user access error: " + serr.Error()}
+			ctx.PureJSON(responseCode, responseBody)
+			return
+		}
 		responseCode := http.StatusServiceUnavailable
 		responseBody := gin.H{"message": "Unexpected error has occured, please try again in a few moments"}
 		ctx.PureJSON(responseCode, responseBody)

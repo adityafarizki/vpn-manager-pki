@@ -49,7 +49,13 @@ func (userService *UserService) GetUsersList() ([]*User, error) {
 func (userService *UserService) RevokeUserCert(user *User) error {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
 	if err != nil {
-		return fmt.Errorf("revoking user cert error: %w", err)
+		if serr, ok := err.(NotFoundError); ok {
+			errMessage := fmt.Sprintf("revoking user cert error not found: %s", serr.Error())
+			return NotFoundError{Message: errMessage}
+		} else {
+
+		}
+		return err
 	}
 
 	err = userService.CertManager.RevokeCert(cert)
@@ -57,13 +63,15 @@ func (userService *UserService) RevokeUserCert(user *User) error {
 		return fmt.Errorf("revoking user cert error: %w", err)
 	}
 
+	user.IsRevoked = true
+
 	return nil
 }
 
 func (userService *UserService) GetUserCert(user *User) (*x509.Certificate, error) {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
 	if err != nil {
-		return nil, fmt.Errorf("getting user cert error: %w", err)
+		return nil, err
 	}
 
 	return cert, nil
@@ -71,7 +79,7 @@ func (userService *UserService) GetUserCert(user *User) (*x509.Certificate, erro
 
 func (userService *UserService) GenerateUserCert(user *User) (*x509.Certificate, error) {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
-	if _, isNotFound := err.(*NotFoundError); err != nil && !isNotFound {
+	if _, isNotFound := err.(NotFoundError); err != nil && !isNotFound {
 		return nil, fmt.Errorf("generating user cert error: %w", err)
 	}
 

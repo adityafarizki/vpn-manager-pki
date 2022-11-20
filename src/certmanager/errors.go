@@ -1,4 +1,4 @@
-package user
+package certmanager
 
 type NotFoundError struct {
 	error
@@ -7,8 +7,4 @@ type NotFoundError struct {
 
 func (err NotFoundError) Error() string {
 	return err.Message
-}
-
-type ForbiddenError struct {
-	error
 }

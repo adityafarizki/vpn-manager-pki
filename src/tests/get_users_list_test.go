@@ -63,12 +63,12 @@ var _ = Describe("Get users list", Ordered, func() {
 
 			for i := 0; i < userCount; i++ {
 				usersList[i] = generateRandomUser("", "")
-				userCert, _, err := testFixture.CertManager.GenerateCert(usersList[i].Email)
+				_, _, err := testFixture.CertManager.GenerateCert(usersList[i].Email)
 				Expect(err).To(BeNil())
-				usersList[i].IsRevoked = rand.Float32() <= 0.7
+				isRevoked := rand.Float32() <= 0.7
 
-				if usersList[i].IsRevoked {
-					testFixture.CertManager.RevokeCert(userCert)
+				if isRevoked {
+					testFixture.UserService.RevokeUserCert(usersList[i])
 				}
 			}
 		})
@@ -76,6 +76,7 @@ var _ = Describe("Get users list", Ordered, func() {
 		AfterAll(func() {
 			testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
 		})
 
 		When("Administrator user request user's list", func() {
