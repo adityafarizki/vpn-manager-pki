@@ -3,7 +3,6 @@ package vpngatepki_test
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -87,7 +86,6 @@ var _ = Describe("revoke user cert", Ordered, func() {
 				})
 
 				It("Responds with 404 Not Found", func() {
-					fmt.Println(response)
 					Expect(response.Code).To(Equal(404))
 				})
 			})

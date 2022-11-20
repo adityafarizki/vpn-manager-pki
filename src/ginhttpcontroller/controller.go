@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"github.com/adityafarizki/vpn-gate-pki/user"
@@ -92,12 +91,22 @@ func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
 }
 
 func (controller *GinHttpController) getUserVpnConfig(ctx *gin.Context) {
-	user, err := controller.authenticateUser(ctx)
+	authUser, err := controller.authenticateUser(ctx)
 	if err != nil {
 		return
 	}
 
-	vpnConfig, err := controller.vpnManager.GetUserConfig(user)
+	_, err = controller.userService.GetUserCert(authUser)
+	if err != nil {
+		if _, ok := err.(user.NotFoundError); ok {
+			controller.userService.GenerateUserCert(authUser)
+		} else {
+			ctx.Error(err)
+			return
+		}
+	}
+
+	vpnConfig, err := controller.vpnManager.GetUserConfig(authUser)
 	if err != nil {
 		ctx.Error(err)
 		return
@@ -148,8 +157,6 @@ func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
 	targetEmail := ctx.Param("email")
 	err = controller.userService.RevokeUserCert(&user.User{Email: targetEmail})
 	if err != nil {
-		fmt.Println(reflect.TypeOf(err))
-		fmt.Println(err.Error())
 		if serr, ok := err.(user.NotFoundError); ok {
 			responseCode := http.StatusNotFound
 			responseBody := gin.H{"message": "Revoking user access error: " + serr.Error()}

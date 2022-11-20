@@ -53,9 +53,8 @@ func (userService *UserService) RevokeUserCert(user *User) error {
 			errMessage := fmt.Sprintf("revoking user cert error not found: %s", serr.Error())
 			return NotFoundError{Message: errMessage}
 		} else {
-
+			return err
 		}
-		return err
 	}
 
 	err = userService.CertManager.RevokeCert(cert)
@@ -71,7 +70,12 @@ func (userService *UserService) RevokeUserCert(user *User) error {
 func (userService *UserService) GetUserCert(user *User) (*x509.Certificate, error) {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
 	if err != nil {
-		return nil, err
+		if serr, ok := err.(NotFoundError); ok {
+			errMessage := fmt.Sprintf("get user cert error not found: %s", serr.Error())
+			return nil, NotFoundError{Message: errMessage}
+		} else {
+			return nil, err
+		}
 	}
 
 	return cert, nil
