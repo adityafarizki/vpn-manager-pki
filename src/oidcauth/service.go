@@ -79,7 +79,7 @@ func (oAuth *OidcAuthService) AuthenticateAuthCode(authCode string) (*jwt.Token,
 	respToken := map[string]string{}
 	json.Unmarshal(respBody, &respToken)
 
-	userToken, err := oAuth.parseJwt(respToken["user_token"])
+	userToken, err := oAuth.parseJwt(respToken["id_token"])
 	if err != nil {
 		return nil, fmt.Errorf("authenticating auth code error: %w", err)
 	}
