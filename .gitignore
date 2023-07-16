@@ -2,4 +2,4 @@ certs
 clients
 vpn
 *.ovpn
-.env
+.env*

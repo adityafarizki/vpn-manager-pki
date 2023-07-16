@@ -11,12 +11,3 @@ type OidcAuthService struct {
 	RedirectUrl  string
 	Scopes       []string
 }
-
-type GoogleOidcAuthConfig struct {
-	ClientId     string
-	ClientSecret string
-	AuthUrl      string
-	TokenUrl     string
-	CertUrl      string
-	RedirectUrl  string
-}

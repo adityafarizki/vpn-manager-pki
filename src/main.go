@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/adityafarizki/vpn-gate-pki/config"
-	httpcontroller "github.com/adityafarizki/vpn-gate-pki/ginhttpcontroller"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
@@ -20,7 +19,7 @@ func main() {
 		return
 	}
 
-	ginController, err := httpcontroller.Bootstrap(appConfig)
+	ginController, err := Bootstrap(appConfig)
 	if err != nil {
 		fmt.Println("error occured during bootstrap: " + err.Error())
 		return

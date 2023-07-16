@@ -1,17 +1,18 @@
-package ginhttpcontroller
+package main
 
 import (
 	"fmt"
 
 	"github.com/adityafarizki/vpn-gate-pki/certmanager"
 	"github.com/adityafarizki/vpn-gate-pki/config"
+	gin "github.com/adityafarizki/vpn-gate-pki/ginhttpcontroller"
 	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
 	"github.com/adityafarizki/vpn-gate-pki/s3storage"
 	"github.com/adityafarizki/vpn-gate-pki/user"
 	"github.com/adityafarizki/vpn-gate-pki/vpnmanager"
 )
 
-func Bootstrap(appConfig *config.Config) (*GinHttpController, error) {
+func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 	authInstance, err := oidcauth.NewGoogleOidcAuth(&oidcauth.GoogleOidcAuthConfig{
 		AuthUrl:      appConfig.OidcAuthUrl,
 		ClientId:     appConfig.OidcClientId,
@@ -34,9 +35,6 @@ func Bootstrap(appConfig *config.Config) (*GinHttpController, error) {
 		UserCertDirPath: "clients",
 		CertStorage:     s3Storage,
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error boostrapping app: %w", err)
-	}
 
 	vpnManager, err := vpnmanager.NewVpnManagerFromStorage(&vpnmanager.NewVpnManagerFromStorageParam{
 		Storage:         s3Storage,
@@ -53,7 +51,7 @@ func Bootstrap(appConfig *config.Config) (*GinHttpController, error) {
 		CertManager: certManager,
 	}
 
-	ginController := NewGinHttpController(&NewGinHttpControllerParam{
+	ginController := gin.NewGinHttpController(&gin.NewGinHttpControllerParam{
 		AuthInstance: authInstance,
 		VpnManager:   vpnManager,
 		UserService:  userService,

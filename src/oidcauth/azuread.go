@@ -1,25 +1,23 @@
 package oidcauth
 
-import (
-	"fmt"
-)
+import "fmt"
 
-type GoogleOidcAuthConfig struct {
+type NewAzureAdOidcAuthConfig struct {
 	ClientId     string
 	ClientSecret string
 	AuthUrl      string
 	TokenUrl     string
-	CertUrl      string
+	JwkUrl       string
 	RedirectUrl  string
 }
 
-func NewGoogleOidcAuth(config *GoogleOidcAuthConfig) (*OidcAuthService, error) {
-	authKeys, err := getCertsAuthKeys(config.CertUrl)
+func NewAzureAdOidcAuth(config *NewAzureAdOidcAuthConfig) (*OidcAuthService, error) {
+	authKeys, err := getJwkSetAuthKeys(config.JwkUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing Google auth: %w", err)
 	}
 
-	scopes := []string{"https://www.googleapis.com/auth/userinfo.email"}
+	scopes := []string{"email"}
 
 	return &OidcAuthService{
 		ClientId:     config.ClientId,
