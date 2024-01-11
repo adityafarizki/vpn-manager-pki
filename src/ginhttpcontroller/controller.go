@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const AUTH_COOKIE_NAME = "authJwt"
+
 func NewGinHttpController(
 	param *NewGinHttpControllerParam,
 ) *GinHttpController {
@@ -25,12 +27,47 @@ func NewGinHttpController(
 }
 
 func (controller *GinHttpController) buildRoute() {
-	controller.Router.GET("/", controller.login)
+	controller.Router.GET("/", controller.mainPage)
 	controller.Router.GET("/login", controller.login)
 	controller.Router.GET("/oidc-code-auth", controller.oidcCodeAuth)
-	controller.Router.GET("/vpn-config", controller.getUserVpnConfig)
-	controller.Router.GET("/users", controller.getUsers)
-	controller.Router.DELETE("/user/:email", controller.revokeUserAccess)
+	controller.Router.GET("/api/vpn-config", controller.getUserVpnConfig)
+	controller.Router.GET("/api/users", controller.getUsers)
+	controller.Router.DELETE("/api/user/:email", controller.revokeUserAccess)
+}
+
+func (controller *GinHttpController) mainPage(ctx *gin.Context) {
+	jwtToken, err := ctx.Cookie(AUTH_COOKIE_NAME)
+	if err != nil {
+		ctx.Redirect(http.StatusTemporaryRedirect, controller.authInstance.GetAuthUrl())
+		return
+	}
+
+	user, err := controller.authInstance.AuthenticateJwt(jwtToken)
+	if err != nil {
+		ctx.Redirect(http.StatusTemporaryRedirect, controller.authInstance.GetAuthUrl())
+		return
+	}
+
+	ctx.HTML(200, "index.html", gin.H{"user": user})
+}
+
+func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
+	query := ctx.Request.URL.Query()
+	authCode := query["code"][0]
+
+	token, err := controller.authInstance.AuthenticateAuthCode(authCode)
+	if err != nil {
+		ctx.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := controller.authInstance.AuthenticateJwt(token.Raw)
+	if err != nil {
+		ctx.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.HTML(200, "index.html", gin.H{"user": user})
 }
 
 func (controller *GinHttpController) login(ctx *gin.Context) {
@@ -64,30 +101,11 @@ func (controller *GinHttpController) authorizeAction(user *user.User, action str
 		if controller.userService.IsUserAdmin(user) {
 			return nil
 		} else {
-			return fmt.Errorf("Unauthorized to do action %s", action)
+			return fmt.Errorf("unauthorized to do action %s", action)
 		}
 	}
 
 	return nil
-}
-
-func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
-	query := ctx.Request.URL.Query()
-	authCode := query["code"][0]
-
-	token, err := controller.authInstance.AuthenticateAuthCode(authCode)
-
-	var responseCode int
-	var responseBody gin.H
-	if err != nil {
-		responseCode = http.StatusUnauthorized
-		responseBody = gin.H{"message": "parsing token error, " + err.Error()}
-	} else {
-		responseCode = http.StatusOK
-		responseBody = gin.H{"token": token.Raw}
-	}
-
-	ctx.JSON(responseCode, responseBody)
 }
 
 func (controller *GinHttpController) getUserVpnConfig(ctx *gin.Context) {

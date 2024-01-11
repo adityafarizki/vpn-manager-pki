@@ -37,7 +37,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 				Expect(err).To(BeNil())
 
-				req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+				req, err := http.NewRequest("DELETE", "/api/user/"+user.Email, nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{
@@ -75,7 +75,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 					requesterJwt, err := buildUserJWT(requester, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 					Expect(err).To(BeNil())
 
-					req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+					req, err := http.NewRequest("DELETE", "/api/user/"+user.Email, nil)
 					Expect(err).To(BeNil())
 
 					req.Header = map[string][]string{
@@ -126,7 +126,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 						userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 						Expect(err).To(BeNil())
 
-						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+						req, err := http.NewRequest("DELETE", "/api/user/"+user.Email, nil)
 						Expect(err).To(BeNil())
 
 						req.Header = map[string][]string{
@@ -165,7 +165,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 						userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 						Expect(err).To(BeNil())
 
-						req, err := http.NewRequest("DELETE", "/user/"+user.Email, nil)
+						req, err := http.NewRequest("DELETE", "/api/user/"+user.Email, nil)
 						Expect(err).To(BeNil())
 
 						req.Header = map[string][]string{

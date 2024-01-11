@@ -35,7 +35,7 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 				Expect(err).To(BeNil())
 
-				req, err := http.NewRequest("GET", "/vpn-config", nil)
+				req, err := http.NewRequest("GET", "/api/vpn-config", nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{
@@ -108,7 +108,7 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 				Expect(err).To(BeNil())
 
-				req, err := http.NewRequest("GET", "/vpn-config", nil)
+				req, err := http.NewRequest("GET", "/api/vpn-config", nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{

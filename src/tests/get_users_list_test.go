@@ -31,7 +31,7 @@ var _ = Describe("Get users list", Ordered, func() {
 			userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 			Expect(err).To(BeNil())
 
-			req, err := http.NewRequest("GET", "/users", nil)
+			req, err := http.NewRequest("GET", "/api/users", nil)
 			Expect(err).To(BeNil())
 
 			req.Header = map[string][]string{
@@ -88,7 +88,7 @@ var _ = Describe("Get users list", Ordered, func() {
 
 				testFixture.UserService.AdminList = []string{admin.Email}
 
-				req, err := http.NewRequest("GET", "/users", nil)
+				req, err := http.NewRequest("GET", "/api/users", nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{
