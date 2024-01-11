@@ -27,12 +27,10 @@ func ConfigFromEnv() (*Config, error) {
 		if varType.String() == "[]string" {
 			var val []string
 			json.Unmarshal([]byte(envVal), &val)
-			fmt.Println(os.Getenv(strings.ToUpper(varName)))
 			field.Set(reflect.ValueOf(val))
 		} else if varType.String() == "bool" {
 			var val bool
 			json.Unmarshal([]byte(envVal), &val)
-			fmt.Println(os.Getenv(strings.ToUpper(varName)))
 			field.Set(reflect.ValueOf(val))
 		} else {
 			field.SetString(envVal)

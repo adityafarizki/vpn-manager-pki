@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>VPN Config</title>
+    <meta name="description" content="Download your VPN config">
+  </head>
+  <body>
+    <button onclick="downloadConfig()">Download VPN config {{.user.Email}}</button>
+  </body>
+  <script>
+    async function downloadConfig() {
+      let response = await fetch("/api/vpn-config");
+      console.log(response);
+    }
+  </script>
+</html>

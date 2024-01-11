@@ -1,7 +1,6 @@
 package oidcauth
 
 import (
-	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -31,24 +30,33 @@ func getJwkSetAuthKeys(jwkSetUrl string) (map[string]*rsa.PublicKey, error) {
 	}
 	defer response.Body.Close()
 
-	set, err := jwk.Parse(respBody)
+	var jwks map[string][]map[string]any
+	err = json.Unmarshal(respBody, &jwks)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing jwks: %s", err)
 	}
 
-	authKeys := make(map[string]*rsa.PublicKey, set.Len())
-	for it := set.Iterate(context.TODO()); it.Next(context.TODO()); {
-		pair := it.Pair()
-		key := pair.Value.(jwk.Key)
+	authKeys := make(map[string]*rsa.PublicKey, len(jwks["keys"]))
+	for _, jwkKey := range jwks["keys"] {
+		jwkKey["alg"] = "RS256"
+		jwkByte, err := json.Marshal(jwkKey)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing jwk: %s", err)
+		}
+
+		key, err := jwk.ParseKey(jwkByte)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing jwk: %s", err)
+		}
 
 		var rawkey interface{}
 		if err := key.Raw(&rawkey); err != nil {
-			return nil, fmt.Errorf("error parsing jwks: %s", err)
+			return nil, fmt.Errorf("error parsing jwk: %s", err)
 		}
 
 		rsa, ok := rawkey.(*rsa.PublicKey)
 		if !ok {
-			return nil, fmt.Errorf("error parsing jwks: %s", err)
+			return nil, fmt.Errorf("error parsing jwk: %s", err)
 		}
 
 		authKeys[key.KeyID()] = rsa

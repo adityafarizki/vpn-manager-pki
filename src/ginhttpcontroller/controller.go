@@ -33,6 +33,7 @@ func (controller *GinHttpController) buildRoute() {
 	controller.Router.GET("/api/vpn-config", controller.getUserVpnConfig)
 	controller.Router.GET("/api/users", controller.getUsers)
 	controller.Router.DELETE("/api/user/:email", controller.revokeUserAccess)
+	controller.Router.LoadHTMLGlob("templates/*")
 }
 
 func (controller *GinHttpController) mainPage(ctx *gin.Context) {
@@ -114,6 +115,7 @@ func (controller *GinHttpController) getUserVpnConfig(ctx *gin.Context) {
 		return
 	}
 
+	// Verify if user's cert has been generated
 	_, err = controller.userService.GetUserCert(authUser)
 	if err != nil {
 		if _, ok := err.(user.NotFoundError); ok {

@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/adityafarizki/vpn-gate-pki/user"
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
 func (oAuth *OidcAuthService) GetAuthUrl() string {
 	scopeParam := ""
 	for _, scope := range oAuth.Scopes {
-		scopeParam += fmt.Sprintf("&scope[]=%s", scope)
+		scopeParam += fmt.Sprintf("&scope=%s", scope)
 	}
 
 	return fmt.Sprintf(
@@ -49,39 +49,46 @@ func (oAuth *OidcAuthService) AuthenticateJwt(token string) (*user.User, error) 
 
 func (oAuth *OidcAuthService) AuthenticateAuthCode(authCode string) (*jwt.Token, error) {
 	client := http.DefaultClient
-	body, err := json.Marshal(gin.H{
-		"client_id":     oAuth.ClientId,
-		"client_secret": oAuth.ClientSecret,
-		"grant_type":    "authorization_code",
-		"code":          authCode,
-		"redirect_uri":  oAuth.RedirectUrl,
-	})
+	form := url.Values{}
+	form.Add("client_id", oAuth.ClientId)
+	form.Add("client_secret", oAuth.ClientSecret)
+	form.Add("grant_type", "authorization_code")
+	form.Add("code", authCode)
+	form.Add("redirect_uri", oAuth.RedirectUrl)
+	// body, err := json.Marshal(gin.H{
+	// 	"client_id":     oAuth.ClientId,
+	// 	"client_secret": oAuth.ClientSecret,
+	// 	"grant_type":    "authorization_code",
+	// 	"code":          authCode,
+	// 	"redirect_uri":  oAuth.RedirectUrl,
+	// })
+	// if err != nil {
+	// 	return nil, fmt.Errorf("parsing auth parameter error: %w", err)
+	// }
+
+	req, err := http.NewRequest("POST", oAuth.TokenUrl, bytes.NewBuffer([]byte(form.Encode())))
 	if err != nil {
-		return nil, fmt.Errorf("authenticating auth code error: %w", err)
+		return nil, fmt.Errorf("forming jwt request error: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", oAuth.TokenUrl, bytes.NewBuffer(body))
-	if err != nil {
-		return nil, fmt.Errorf("authenticating auth code error: %w", err)
-	}
-
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("authenticating auth code error: %w", err)
+		return nil, fmt.Errorf("requesting jwt error: %w", err)
 	}
 	defer response.Body.Close()
 
 	respBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("authenticating auth code error: %w", err)
+		return nil, fmt.Errorf("parsing jwt response: %w", err)
 	}
 
 	respToken := map[string]string{}
 	json.Unmarshal(respBody, &respToken)
 
-	userToken, err := oAuth.parseJwt(respToken["id_token"])
+	userToken, err := oAuth.parseJwt(respToken["access_token"])
 	if err != nil {
-		return nil, fmt.Errorf("authenticating auth code error: %w", err)
+		return nil, fmt.Errorf("parsing jwt error: %w", err)
 	}
 
 	return userToken, nil
