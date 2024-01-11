@@ -24,9 +24,7 @@ func ConfigFromEnv() (*Config, error) {
 			return nil, fmt.Errorf("error env param %s required", envName)
 		}
 
-		if varType.Name() == "string" {
-			field.SetString(envVal)
-		} else if varType.String() == "[]string" {
+		if varType.String() == "[]string" {
 			var val []string
 			json.Unmarshal([]byte(envVal), &val)
 			fmt.Println(os.Getenv(strings.ToUpper(varName)))
@@ -37,7 +35,7 @@ func ConfigFromEnv() (*Config, error) {
 			fmt.Println(os.Getenv(strings.ToUpper(varName)))
 			field.Set(reflect.ValueOf(val))
 		} else {
-			return nil, fmt.Errorf("error parsing config from env: %s not implemented", varType.String())
+			field.SetString(envVal)
 		}
 	}
 

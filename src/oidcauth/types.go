@@ -11,3 +11,10 @@ type OidcAuthService struct {
 	RedirectUrl  string
 	Scopes       []string
 }
+
+type OidcProvider string
+
+const (
+	Google  OidcProvider = "Google"
+	AzureAD OidcProvider = "AzureAD"
+)
