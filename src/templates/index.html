@@ -6,12 +6,8 @@
     <meta name="description" content="Download your VPN config">
   </head>
   <body>
-    <button onclick="downloadConfig()">Download VPN config {{.user.Email}}</button>
+    <a href="/vpn-config">
+      <button>Download VPN config {{.user.Email}}</button>
+    </a>
   </body>
-  <script>
-    async function downloadConfig() {
-      let response = await fetch("/api/vpn-config");
-      console.log(response);
-    }
-  </script>
 </html>

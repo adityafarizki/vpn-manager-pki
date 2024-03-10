@@ -30,10 +30,10 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 	}
 
 	vpnManager, err := vpnmanager.NewVpnManagerFromStorage(&vpnmanager.NewVpnManagerFromStorageParam{
-		Storage:         s3Storage,
-		ServerIPAddress: appConfig.VpnIpAddress,
-		ConfigBasePath:  "ca",
-		CertManager:     certManager,
+		Storage:           s3Storage,
+		ServerIPAddresses: appConfig.VpnIpAddresses,
+		ConfigBasePath:    "ca",
+		CertManager:       certManager,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error boostrapping app: %w", err)
@@ -49,9 +49,6 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 		VpnManager:   vpnManager,
 		UserService:  userService,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("error boostrapping app: %w", err)
-	}
 
 	return ginController, nil
 }

@@ -75,9 +75,6 @@ func Bootstrap(appConfig *config.Config) (*TestFixture, error) {
 		AuthKeys:     authKeys,
 		RedirectUrl:  appConfig.OidcRedirectUrl,
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error boostrapping app: %w", err)
-	}
 
 	s3Storage, err := s3storage.NewS3Storage(appConfig.StorageBucket)
 	if err != nil {
@@ -89,15 +86,12 @@ func Bootstrap(appConfig *config.Config) (*TestFixture, error) {
 		UserCertDirPath: "clients",
 		CertStorage:     s3Storage,
 	}
-	if err != nil {
-		return nil, fmt.Errorf("error boostrapping app: %w", err)
-	}
 
 	vpnManager, err := vpnmanager.NewVpnManagerFromStorage(&vpnmanager.NewVpnManagerFromStorageParam{
-		Storage:         s3Storage,
-		ServerIPAddress: appConfig.VpnIpAddress,
-		ConfigBasePath:  "ca",
-		CertManager:     certManager,
+		Storage:           s3Storage,
+		ServerIPAddresses: appConfig.VpnIpAddresses,
+		ConfigBasePath:    "ca",
+		CertManager:       certManager,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error boostrapping app: %w", err)
@@ -113,9 +107,6 @@ func Bootstrap(appConfig *config.Config) (*TestFixture, error) {
 		VpnManager:   vpnManager,
 		UserService:  userService,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("error boostrapping app: %w", err)
-	}
 
 	return &TestFixture{
 		AuthInstance: authInstance,

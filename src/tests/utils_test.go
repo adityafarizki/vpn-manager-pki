@@ -1,10 +1,14 @@
 package vpngatepki_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -30,10 +34,6 @@ func cleanS3BucketDir(bucket string, dir string) error {
 	}
 
 	err = deleteObjects(client, bucket, objects)
-	if err != nil {
-		return err
-	}
-
 	if err != nil {
 		return err
 	}
@@ -175,4 +175,30 @@ func getCertFromVPNConfig(vpnConfig string) (*x509.Certificate, error) {
 	}
 
 	return cert, nil
+}
+
+func unzip(zipData []byte) (map[string][]byte, error) {
+	buff := bytes.NewReader(zipData)
+	reader, err := zip.NewReader(buff, int64(len(zipData)))
+	if err != nil {
+		return nil, fmt.Errorf("error unzipping data: %s", err)
+	}
+
+	result := map[string][]byte{}
+	for _, f := range reader.File {
+		rc, err := f.Open()
+		if err != nil {
+			return nil, fmt.Errorf("error unzipping data: %s", err)
+		}
+
+		resultBuff := new(bytes.Buffer)
+		_, err = io.Copy(resultBuff, rc)
+		if err != nil {
+			return nil, fmt.Errorf("error unzipping data: %s", err)
+		}
+		rc.Close()
+		result[f.Name] = resultBuff.Bytes()
+	}
+
+	return result, nil
 }

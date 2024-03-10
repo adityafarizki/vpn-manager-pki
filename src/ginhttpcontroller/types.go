@@ -19,3 +19,17 @@ type NewGinHttpControllerParam struct {
 	VpnManager   *vpnmanager.VpnManagerService
 	UserService  *user.UserService
 }
+
+func NewGinHttpController(
+	param *NewGinHttpControllerParam,
+) *GinHttpController {
+	controller := &GinHttpController{
+		authInstance: param.AuthInstance,
+		vpnManager:   param.VpnManager,
+		userService:  param.UserService,
+		Router:       gin.Default(),
+	}
+	controller.buildRoute()
+
+	return controller
+}

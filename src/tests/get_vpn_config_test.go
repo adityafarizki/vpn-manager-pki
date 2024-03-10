@@ -3,7 +3,6 @@ package vpngatepki_test
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +26,7 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 		Expect(err).To(BeNil())
 		cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
 	})
+
 	Describe("Given user doesn't exist before", func() {
 		Context("When client send request to create vpn user", func() {
 			var user *user.User
@@ -35,11 +35,11 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 				Expect(err).To(BeNil())
 
-				req, err := http.NewRequest("GET", "/api/vpn-config", nil)
+				req, err := http.NewRequest("GET", "/vpn-config", nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{
-					"Authorization": {"bearer " + userJwt},
+					"Cookie": {"authJwt=" + userJwt},
 				}
 				response = httptest.NewRecorder()
 				testFixture.Controller.Router.ServeHTTP(response, req)
@@ -65,29 +65,29 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				responseBody, err := io.ReadAll(response.Body)
 				Expect(err).To(BeNil())
 
-				var responseJson map[string]string
-				err = json.Unmarshal(responseBody, &responseJson)
+				vpnConfigs, err := unzip(responseBody)
 				Expect(err).To(BeNil())
+				for _, config := range vpnConfigs {
+					cert, err := getCertFromVPNConfig(string(config))
+					Expect(err).To(BeNil())
 
-				cert, err := getCertFromVPNConfig(responseJson["config"])
-				Expect(err).To(BeNil())
+					ca, _, err := testFixture.CertManager.GetRootCert()
+					Expect(err).To(BeNil())
 
-				ca, _, err := testFixture.CertManager.GetRootCert()
-				Expect(err).To(BeNil())
-
-				roots := x509.NewCertPool()
-				roots.AddCert(ca)
-				_, err = cert.Verify(x509.VerifyOptions{
-					Roots: roots,
-				})
-				Expect(err).To(BeNil())
+					roots := x509.NewCertPool()
+					roots.AddCert(ca)
+					_, err = cert.Verify(x509.VerifyOptions{
+						Roots: roots,
+					})
+					Expect(err).To(BeNil())
+				}
 			})
 		})
 	})
 
 	Describe("Given user already exists before", func() {
 		var user *user.User
-		var userVpnConfig string
+		var userVpnConfig map[string]string
 		BeforeAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
 			user = generateRandomUser("", "")
@@ -108,11 +108,11 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				userJwt, err := buildUserJWT(user, testFixture.KeyConfig.KeyId, testFixture.KeyConfig.PrivateKey)
 				Expect(err).To(BeNil())
 
-				req, err := http.NewRequest("GET", "/api/vpn-config", nil)
+				req, err := http.NewRequest("GET", "/vpn-config", nil)
 				Expect(err).To(BeNil())
 
 				req.Header = map[string][]string{
-					"Authorization": {"bearer " + userJwt},
+					"Cookie": {"authJwt=" + userJwt},
 				}
 				response = httptest.NewRecorder()
 				testFixture.Controller.Router.ServeHTTP(response, req)
@@ -126,11 +126,15 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 				responseBody, err := io.ReadAll(response.Body)
 				Expect(err).To(BeNil())
 
-				var responseJson map[string]string
-				err = json.Unmarshal(responseBody, &responseJson)
+				vpnConfigs, err := unzip(responseBody)
 				Expect(err).To(BeNil())
 
-				Expect(responseJson["config"]).To(Equal(userVpnConfig))
+				for name, config := range vpnConfigs {
+					conf := string(config)
+					userConf := userVpnConfig[name[:len(name)-5]] // cut the .ovpn
+
+					Expect(conf).To(Equal(userConf))
+				}
 			})
 		})
 	})

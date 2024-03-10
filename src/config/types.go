@@ -13,7 +13,7 @@ type Config struct {
 	OidcRedirectUrl  string
 	OidcProvider     oidcauth.OidcProvider
 	StorageBucket    string
-	VpnIpAddress     string
+	VpnIpAddresses   []string
 	DeploymentEnv    string
 	AdminEmailList   []string
 }
