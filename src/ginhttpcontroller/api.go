@@ -88,3 +88,67 @@ func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, &gin.H{})
 }
+
+func (controller *GinHttpController) reinstateUser(ctx *gin.Context) {
+	token, err := controller.getBearerToken(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "bad bearer auth header, " + err.Error()})
+		ctx.Status(403)
+		return
+	}
+
+	callingUser, err := controller.authInstance.AuthenticateJwt(token)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "authenticating user failed, " + err.Error()})
+		ctx.Status(403)
+		return
+	}
+
+	err = controller.authorizeAction(callingUser, "RevokeUserAccess")
+	if err != nil {
+		responseCode := http.StatusForbidden
+		responseBody := gin.H{"message": "Unauthorized to do action RevokeUserAccess"}
+		ctx.PureJSON(responseCode, responseBody)
+		return
+	}
+
+	targetEmail := ctx.Param("email")
+	cert, err := controller.userService.GetUserCert(&user.User{Email: targetEmail})
+	if err != nil {
+		if serr, ok := err.(user.NotFoundError); ok {
+			responseCode := http.StatusNotFound
+			responseBody := gin.H{"message": "Error in reinstating user while getting user cert: " + serr.Error()}
+			ctx.PureJSON(responseCode, responseBody)
+			return
+		} else {
+			responseCode := http.StatusInternalServerError
+			responseBody := gin.H{"message": "Error in reinstating user while getting user cert: " + err.Error()}
+			ctx.PureJSON(responseCode, responseBody)
+			return
+		}
+	}
+
+	isCertRevoked, err := controller.userService.CertManager.IsCertRevoked(cert)
+	if err != nil {
+		responseCode := http.StatusInternalServerError
+		responseBody := gin.H{"message": "Error in reinstating user: " + err.Error()}
+		ctx.PureJSON(responseCode, responseBody)
+		return
+	}
+
+	if !isCertRevoked {
+		responseCode := http.StatusOK
+		responseBody := gin.H{"message": "User access was not revoked"}
+		ctx.PureJSON(responseCode, responseBody)
+		return
+	}
+
+	_, _, err = controller.userService.CertManager.GenerateCert(targetEmail)
+	if err != nil {
+		responseCode := http.StatusInternalServerError
+		responseBody := gin.H{"message": "Error in reinstating user while generating cert: " + err.Error()}
+		ctx.PureJSON(responseCode, responseBody)
+		return
+	}
+	ctx.JSON(http.StatusOK, &gin.H{})
+}

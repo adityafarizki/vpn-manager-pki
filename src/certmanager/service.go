@@ -136,7 +136,7 @@ func (cm *CertManager) IsCertRevoked(userCert *x509.Certificate) (bool, error) {
 	}
 
 	for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
-		if revokedCert.SerialNumber == userCert.SerialNumber {
+		if revokedCert.SerialNumber.Cmp(userCert.SerialNumber) == 0 {
 			return true, nil
 		}
 	}

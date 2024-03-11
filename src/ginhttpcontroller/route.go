@@ -8,4 +8,5 @@ func (controller *GinHttpController) buildRoute() {
 
 	controller.Router.GET("/api/users", controller.getUsers)
 	controller.Router.DELETE("/api/user/:email", controller.revokeUserAccess)
+	controller.Router.PUT("/api/user/:email/reinstate", controller.reinstateUser)
 }
