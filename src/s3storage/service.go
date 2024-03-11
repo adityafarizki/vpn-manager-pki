@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/adityafarizki/vpn-gate-pki/certmanager"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
@@ -34,7 +34,7 @@ func (storage *S3Storage) GetFile(path string) ([]byte, error) {
 	if err != nil {
 		if strings.Contains(err.Error(), "NoSuchKey") {
 			message := fmt.Sprintf("s3 GetFile error: key %s: %s", path, err.Error())
-			return nil, certmanager.NotFoundError{Message: message}
+			return nil, cmerr.NotFoundError{Message: message}
 		} else {
 			return nil, fmt.Errorf("s3 GetFile error: key %s: %w", path, err)
 		}
@@ -57,6 +57,18 @@ func (storage *S3Storage) SaveFile(path string, data []byte) error {
 	})
 	if err != nil {
 		return fmt.Errorf("s3 SaveFile error: %w", err)
+	}
+
+	return nil
+}
+
+func (storage *S3Storage) DeleteFile(path string) error {
+	_, err := storage.client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: &storage.BucketName,
+		Key:    &path,
+	})
+	if err != nil {
+		return fmt.Errorf("s3 DeleteFile error: %w", err)
 	}
 
 	return nil

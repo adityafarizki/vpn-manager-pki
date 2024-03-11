@@ -112,7 +112,7 @@ var _ = Describe("revoke user cert", Ordered, func() {
 
 			Describe("Given user cert has been revoked", func() {
 				BeforeAll(func() {
-					testFixture.UserService.RevokeUserCert(user)
+					testFixture.UserService.RevokeUserAccess(user)
 				})
 
 				AfterAll(func() {

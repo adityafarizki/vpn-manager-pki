@@ -3,6 +3,7 @@ package ginhttpcontroller
 import (
 	"net/http"
 
+	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 	"github.com/adityafarizki/vpn-gate-pki/user"
 	"github.com/gin-gonic/gin"
 )
@@ -72,9 +73,9 @@ func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
 	}
 
 	targetEmail := ctx.Param("email")
-	err = controller.userService.RevokeUserCert(&user.User{Email: targetEmail})
+	err = controller.userService.RevokeUserAccess(&user.User{Email: targetEmail})
 	if err != nil {
-		if serr, ok := err.(user.NotFoundError); ok {
+		if serr, ok := err.(cmerr.NotFoundError); ok {
 			responseCode := http.StatusNotFound
 			responseBody := gin.H{"message": "Revoking user access error: " + serr.Error()}
 			ctx.PureJSON(responseCode, responseBody)
@@ -115,7 +116,7 @@ func (controller *GinHttpController) reinstateUser(ctx *gin.Context) {
 	targetEmail := ctx.Param("email")
 	cert, err := controller.userService.GetUserCert(&user.User{Email: targetEmail})
 	if err != nil {
-		if serr, ok := err.(user.NotFoundError); ok {
+		if serr, ok := err.(cmerr.NotFoundError); ok {
 			responseCode := http.StatusNotFound
 			responseBody := gin.H{"message": "Error in reinstating user while getting user cert: " + serr.Error()}
 			ctx.PureJSON(responseCode, responseBody)

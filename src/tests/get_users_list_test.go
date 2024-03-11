@@ -68,7 +68,7 @@ var _ = Describe("Get users list", Ordered, func() {
 				isRevoked := rand.Float32() <= 0.7
 
 				if isRevoked {
-					testFixture.UserService.RevokeUserCert(usersList[i])
+					testFixture.UserService.RevokeUserAccess(usersList[i])
 				}
 			}
 		})

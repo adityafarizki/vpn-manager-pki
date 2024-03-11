@@ -12,7 +12,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 )
 
 func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -21,9 +21,9 @@ func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.Priva
 
 	certBinary, err := cm.CertStorage.GetFile(certPath)
 	if err != nil {
-		if serr, ok := err.(NotFoundError); ok {
+		if serr, ok := err.(cmerr.NotFoundError); ok {
 			errMessage := fmt.Sprintf("GetCert error: %s", serr.Error())
-			return nil, nil, user.NotFoundError{Message: errMessage}
+			return nil, nil, cmerr.NotFoundError{Message: errMessage}
 		}
 		return nil, nil, fmt.Errorf("GetCert error: %w", err)
 	}
@@ -115,13 +115,6 @@ func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 	}
 	crl.TBSCertList.RevokedCertificates = append(crl.TBSCertList.RevokedCertificates, *newRevokedCert)
 	err = cm.SaveCrl(crl)
-	if err != nil {
-		return fmt.Errorf("Revoke cert error: %w", err)
-	}
-
-	err = cm.CertStorage.SaveFile(cm.getRevokedCertNamePath()+userCert.Subject.CommonName, []byte("revoked"))
-	// Might result in inconsistent state when crl is updated but revoked list is not
-	// Should be handled later
 	if err != nil {
 		return fmt.Errorf("Revoke cert error: %w", err)
 	}

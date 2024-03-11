@@ -2,8 +2,9 @@ package user
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
+
+	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 )
 
 func UserFromCert(cert *x509.Certificate) (*User, error) {
@@ -21,37 +22,31 @@ func (userService *UserService) IsUserAdmin(user *User) bool {
 }
 
 func (userService *UserService) GetUsersList() ([]*User, error) {
-	usersCommonName, err := userService.CertManager.ListCertsCommonName()
+	usersName, err := userService.DataStorage.ListDir(userService.UserDataDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("getting user list error: %w", err)
 	}
 
-	revokedUsersList, err := userService.CertManager.GetRevokedList()
-	if err != nil {
-		return nil, fmt.Errorf("getting user list error: %w", err)
-	}
-
-	users := make([]*User, len(usersCommonName))
-	for i, userName := range usersCommonName {
-		isRevoked := false
-		for _, revokedUser := range revokedUsersList {
-			if userName == revokedUser {
-				isRevoked = true
-				break
-			}
+	users := make([]*User, len(usersName))
+	for i, userName := range usersName {
+		revokedIndicatorLen := len("_revoked")
+		isUserRevoked := len(userName) > revokedIndicatorLen && userName[len(userName)-revokedIndicatorLen:] == "_revoked"
+		if isUserRevoked {
+			users[i] = &User{Email: userName[:len(userName)-revokedIndicatorLen], IsRevoked: true}
+		} else {
+			users[i] = &User{Email: userName, IsRevoked: false}
 		}
-		users[i] = &User{Email: userName, IsRevoked: isRevoked}
 	}
 
 	return users, nil
 }
 
-func (userService *UserService) RevokeUserCert(user *User) error {
+func (userService *UserService) RevokeUserAccess(user *User) error {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
 	if err != nil {
-		if serr, ok := err.(NotFoundError); ok {
+		if serr, ok := err.(cmerr.NotFoundError); ok {
 			errMessage := fmt.Sprintf("revoking user cert error not found: %s", serr.Error())
-			return NotFoundError{Message: errMessage}
+			return cmerr.NotFoundError{Message: errMessage}
 		} else {
 			return err
 		}
@@ -67,12 +62,19 @@ func (userService *UserService) RevokeUserCert(user *User) error {
 	return nil
 }
 
+func (userService *UserService) RegisterUser(email string) (*User, *x509.Certificate, error) {
+	user, err := userService.DataStorage.GetFile(userService.UserDataDirPath + "/" + email)
+	if err != nil {
+		return nil, fmt.Errorf("getting user list error: %w", err)
+	}
+}
+
 func (userService *UserService) GetUserCert(user *User) (*x509.Certificate, error) {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
 	if err != nil {
-		if serr, ok := err.(NotFoundError); ok {
+		if serr, ok := err.(cmerr.NotFoundError); ok {
 			errMessage := fmt.Sprintf("get user cert error not found: %s", serr.Error())
-			return nil, NotFoundError{Message: errMessage}
+			return nil, cmerr.NotFoundError{Message: errMessage}
 		} else {
 			return nil, err
 		}
@@ -83,7 +85,7 @@ func (userService *UserService) GetUserCert(user *User) (*x509.Certificate, erro
 
 func (userService *UserService) GenerateUserCert(user *User) (*x509.Certificate, error) {
 	cert, _, err := userService.CertManager.GetCert(user.Email)
-	if _, isNotFound := err.(NotFoundError); err != nil && !isNotFound {
+	if _, isNotFound := err.(cmerr.NotFoundError); err != nil && !isNotFound {
 		return nil, fmt.Errorf("generating user cert error: %w", err)
 	}
 
@@ -92,7 +94,7 @@ func (userService *UserService) GenerateUserCert(user *User) (*x509.Certificate,
 		return nil, fmt.Errorf("generating user cert error: %w", err)
 	}
 	if cert != nil && isCertRevoked {
-		return nil, ForbiddenError{errors.New("User not allowed to generate cert when the previous one has been revoked")}
+		return nil, cmerr.ForbiddenError{Message: "User not allowed to generate cert when the previous one has been revoked"}
 	}
 
 	cert, _, err = userService.CertManager.GenerateCert(user.Email)

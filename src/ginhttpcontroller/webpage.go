@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	authUser "github.com/adityafarizki/vpn-gate-pki/user"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,7 +60,7 @@ func (controller *GinHttpController) downloadUserVpnConfig(ctx *gin.Context) {
 	// Verify if user's cert has been generated
 	_, err = controller.userService.GetUserCert(user)
 	if err != nil {
-		if _, ok := err.(authUser.NotFoundError); ok {
+		if _, ok := err.(cmerr.NotFoundError); ok {
 			controller.userService.GenerateUserCert(user)
 		} else {
 			responseCode := http.StatusInternalServerError

@@ -1,4 +1,4 @@
-package user
+package commonerrors
 
 type NotFoundError struct {
 	error
@@ -11,4 +11,9 @@ func (err NotFoundError) Error() string {
 
 type ForbiddenError struct {
 	error
+	Message string
+}
+
+func (err ForbiddenError) Error() string {
+	return err.Message
 }

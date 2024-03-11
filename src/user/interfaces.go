@@ -10,6 +10,10 @@ type IUserCertManager interface {
 	GenerateCert(commonName string) (*x509.Certificate, *rsa.PrivateKey, error)
 	RevokeCert(userCert *x509.Certificate) error
 	IsCertRevoked(userCert *x509.Certificate) (bool, error)
-	ListCertsCommonName() ([]string, error)
-	GetRevokedList() ([]string, error)
+}
+
+type IUserDataStorage interface {
+	GetFile(path string) ([]byte, error)
+	SaveFile(path string, data []byte) error
+	ListDir(path string) ([]string, error)
 }
