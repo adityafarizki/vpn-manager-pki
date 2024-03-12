@@ -62,7 +62,6 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 
 		AfterAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
-			cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
 			testFixture.UserService.AdminList = []string{}
 		})
 
@@ -98,7 +97,7 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 				user = generateRandomUser("", "")
 
 				var err error
-				userCert, err = testFixture.UserService.GenerateUserCert(user)
+				_, userCert, err = testFixture.UserService.RegisterUser(user.Email)
 				Expect(err).To(BeNil())
 
 				testFixture.UserService.AdminList = []string{user.Email}
@@ -107,7 +106,7 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 			AfterAll(func() {
 				testFixture.UserService.AdminList = []string{}
 				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
-				cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+
 			})
 
 			Describe("Given user cert has been revoked", func() {
@@ -117,7 +116,7 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 
 				AfterAll(func() {
 					testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
-					cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
+
 				})
 
 				When("Client send request to reinstate user's cert", func() {
@@ -181,8 +180,8 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 
 					AfterAll(func() {
 						testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
-						cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
-						testFixture.UserService.GenerateUserCert(user)
+
+						testFixture.UserService.RegisterUser(user.Email)
 					})
 
 					It("Responds with status 200 OK", func() {

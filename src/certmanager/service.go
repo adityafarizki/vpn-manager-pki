@@ -153,15 +153,6 @@ func (cm *CertManager) GetCrl() (*pkix.CertificateList, error) {
 	return crl, nil
 }
 
-func (cm *CertManager) GetRevokedList() ([]string, error) {
-	revokedList, err := cm.CertStorage.ListDir(cm.getRevokedCertNamePath())
-	if err != nil {
-		return nil, fmt.Errorf("get revoked list error: %w", err)
-	}
-
-	return revokedList, nil
-}
-
 func (cm *CertManager) SaveCrl(crl *pkix.CertificateList) error {
 	ca, caKey, err := cm.GetRootCert()
 	if err != nil {
@@ -270,14 +261,6 @@ func (cm *CertManager) getKeyPath(commonName string) string {
 
 func (cm *CertManager) getCrlPath() string {
 	return fmt.Sprintf("%s/crl.pem", cm.CaDirPath)
-}
-
-func (cm *CertManager) getRevokedCertNamePath() string {
-	return "revokedClients/"
-}
-
-func (cm *CertManager) handleError(err error) error {
-	return err
 }
 
 func (cm *CertManager) GetRootCert() (*x509.Certificate, *rsa.PrivateKey, error) {

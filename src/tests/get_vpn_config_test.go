@@ -25,6 +25,8 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 		testFixture, err = Bootstrap(config)
 		Expect(err).To(BeNil())
 		cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+		cleanS3BucketDir(testFixture.Storage.BucketName, "users")
+		cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 	})
 
 	Describe("Given user doesn't exist before", func() {
@@ -47,8 +49,9 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 
 			AfterAll(func() {
 				testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
-				cleanS3BucketDir(testFixture.Storage.BucketName, "revokedClients")
 				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
+				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 			})
 
 			It("Responds with 200 OK", func() {
@@ -90,16 +93,19 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 		var userVpnConfig map[string]string
 		BeforeAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 			user = generateRandomUser("", "")
 
 			var err error
-			testFixture.UserService.GenerateUserCert(user)
+			testFixture.UserService.RegisterUser(user.Email)
 			userVpnConfig, err = testFixture.VpnManager.GetUserConfig(user)
 			Expect(err).To(BeNil())
 		})
 
 		AfterAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 		})
 
 		Context("When client send request to create vpn user", func() {

@@ -61,7 +61,7 @@ func (controller *GinHttpController) downloadUserVpnConfig(ctx *gin.Context) {
 	_, err = controller.userService.GetUserCert(user)
 	if err != nil {
 		if _, ok := err.(cmerr.NotFoundError); ok {
-			controller.userService.GenerateUserCert(user)
+			controller.userService.RegisterUser(user.Email)
 		} else {
 			responseCode := http.StatusInternalServerError
 			errMessage := fmt.Errorf("Error getting user cert %s", err)

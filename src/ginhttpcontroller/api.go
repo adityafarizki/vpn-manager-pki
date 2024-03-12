@@ -1,6 +1,7 @@
 package ginhttpcontroller
 
 import (
+	"fmt"
 	"net/http"
 
 	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
@@ -114,42 +115,20 @@ func (controller *GinHttpController) reinstateUser(ctx *gin.Context) {
 	}
 
 	targetEmail := ctx.Param("email")
-	cert, err := controller.userService.GetUserCert(&user.User{Email: targetEmail})
+	err = controller.userService.ReinstateUser(&user.User{Email: targetEmail})
 	if err != nil {
 		if serr, ok := err.(cmerr.NotFoundError); ok {
 			responseCode := http.StatusNotFound
-			responseBody := gin.H{"message": "Error in reinstating user while getting user cert: " + serr.Error()}
+			responseBody := gin.H{"message": fmt.Sprintf("User not found: %s", serr.Error())}
 			ctx.PureJSON(responseCode, responseBody)
 			return
 		} else {
 			responseCode := http.StatusInternalServerError
-			responseBody := gin.H{"message": "Error in reinstating user while getting user cert: " + err.Error()}
+			responseBody := gin.H{"message": fmt.Sprintf("Reinstating user error: %s", serr.Error())}
 			ctx.PureJSON(responseCode, responseBody)
 			return
 		}
 	}
 
-	isCertRevoked, err := controller.userService.CertManager.IsCertRevoked(cert)
-	if err != nil {
-		responseCode := http.StatusInternalServerError
-		responseBody := gin.H{"message": "Error in reinstating user: " + err.Error()}
-		ctx.PureJSON(responseCode, responseBody)
-		return
-	}
-
-	if !isCertRevoked {
-		responseCode := http.StatusOK
-		responseBody := gin.H{"message": "User access was not revoked"}
-		ctx.PureJSON(responseCode, responseBody)
-		return
-	}
-
-	_, _, err = controller.userService.CertManager.GenerateCert(targetEmail)
-	if err != nil {
-		responseCode := http.StatusInternalServerError
-		responseBody := gin.H{"message": "Error in reinstating user while generating cert: " + err.Error()}
-		ctx.PureJSON(responseCode, responseBody)
-		return
-	}
 	ctx.JSON(http.StatusOK, &gin.H{})
 }

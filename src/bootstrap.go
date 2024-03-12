@@ -40,8 +40,10 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 	}
 
 	userService := &user.UserService{
-		AdminList:   appConfig.AdminEmailList,
-		CertManager: certManager,
+		AdminList:       appConfig.AdminEmailList,
+		CertManager:     certManager,
+		DataStorage:     s3Storage,
+		UserDataDirPath: "users",
 	}
 
 	ginController := gin.NewGinHttpController(&gin.NewGinHttpControllerParam{
