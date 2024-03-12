@@ -21,7 +21,7 @@ func (controller *GinHttpController) getBearerToken(ctx *gin.Context) (string, e
 }
 
 func (controller *GinHttpController) authorizeAction(user *user.User, action string) error {
-	if action == "GetUsersList" || action == "RevokeUserAccess" {
+	if action == "GetUsersList" || action == "RevokeUserAccess" || action == "OpenAdminPage" || action == "ReinstateUserAccess" {
 		if controller.userService.IsUserAdmin(user) {
 			return nil
 		} else {

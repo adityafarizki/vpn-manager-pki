@@ -47,7 +47,7 @@ func (controller *GinHttpController) getUsers(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"users": usersList})
+	ctx.PureJSON(http.StatusOK, gin.H{"users": usersList})
 }
 
 func (controller *GinHttpController) revokeUserAccess(ctx *gin.Context) {
@@ -106,10 +106,10 @@ func (controller *GinHttpController) reinstateUser(ctx *gin.Context) {
 		return
 	}
 
-	err = controller.authorizeAction(callingUser, "RevokeUserAccess")
+	err = controller.authorizeAction(callingUser, "ReinstateUserAccess")
 	if err != nil {
 		responseCode := http.StatusForbidden
-		responseBody := gin.H{"message": "Unauthorized to do action RevokeUserAccess"}
+		responseBody := gin.H{"message": "Unauthorized to do action ReinstateUserAccess"}
 		ctx.PureJSON(responseCode, responseBody)
 		return
 	}

@@ -30,6 +30,30 @@ func (controller *GinHttpController) mainPage(ctx *gin.Context) {
 	ctx.HTML(200, "index.html", gin.H{"user": user})
 }
 
+func (controller *GinHttpController) adminPage(ctx *gin.Context) {
+	jwtToken, err := ctx.Cookie(AUTH_COOKIE_NAME)
+	if err != nil {
+		ctx.Redirect(http.StatusTemporaryRedirect, controller.authInstance.GetAuthUrl())
+		return
+	}
+
+	user, err := controller.authInstance.AuthenticateJwt(jwtToken)
+	if err != nil {
+		ctx.Redirect(http.StatusTemporaryRedirect, controller.authInstance.GetAuthUrl())
+		return
+	}
+
+	err = controller.authorizeAction(user, "OpenAdminPage")
+	if err != nil {
+		responseCode := http.StatusForbidden
+		responseBody := gin.H{"message": "Unauthorized to do action OpenAdminPage"}
+		ctx.PureJSON(responseCode, responseBody)
+		return
+	}
+
+	ctx.HTML(200, "admin.html", nil)
+}
+
 func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
 	query := ctx.Request.URL.Query()
 	authCode := query["code"][0]

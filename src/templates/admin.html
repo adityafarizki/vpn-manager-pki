@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>VPN Access Administration</title>
+    <meta name="description" content="Administrate access to VPN" />
+  </head>
+  <body>
+    <input
+      name="user search bar"
+      type="text"
+      placeholder="search user email"
+    /><br />
+    <div onclick="prevPage()">prev</div>
+    <div onclick="nextPage()">next</div>
+    <table id="user-data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>status</th>
+          <th>action</th>
+        </tr>
+      </thead>
+      <tbody id="user-data-body"></tbody>
+    </table>
+  </body>
+  <script>
+    const authCookie = getCookie("authJwt");
+    var tableData;
+    var page = 1;
+    loadUserDataBody().then((data) => {
+      tableData = data;
+      renderTable(tableData, page);
+    });
+
+    function nextPage() {
+      page += 1;
+      renderTable(tableData, page);
+    }
+
+    function prevPage() {
+      if (page == 1) {
+        return;
+      }
+      page -= 1;
+      renderTable(tableData, page);
+    }
+
+    async function loadUserDataBody() {
+      response = await fetch("/api/users", {
+        headers: { Authorization: `Bearer ${authCookie}` },
+      });
+
+      if (response.status == 403 || response.status == 401) {
+        window.location = "/";
+      } else if (response.status != 200) {
+        alert(await response.json());
+      } else {
+        return await response.json();
+      }
+    }
+
+    async function renderTable(data, page) {
+      const tableBody = document.getElementById("user-data-body");
+      let result = "";
+
+      let startIdx = page * 10;
+      let endIdx = startIdx + 10;
+      let idx = startIdx;
+      for (const user of data.users.slice(startIdx, endIdx)) {
+        var button;
+        if (user.IsRevoked) {
+          button = `<button onclick="reinstateUser('${user.Email}', ${idx})">Reinstate</button>`;
+        } else {
+          button = `<button onclick="revokeUser('${user.Email}', ${idx})">Revoke</button>`;
+        }
+        const status = user.IsRevoked ? "Revoked" : "Active";
+
+        result += `
+          <tr>
+            <td>${user.Email}</td>
+            <td id='${user.Email}-row-status'>${status}</td>
+            <td id='${user.Email}-row-button'>${button}</td>
+          </tr>
+        `;
+
+        idx++;
+      }
+
+      tableBody.innerHTML = result;
+    }
+
+    async function revokeUser(email, idx) {
+      response = await fetch(`/api/user/${email}`, {
+        headers: { Authorization: `Bearer ${authCookie}` },
+        method: "DELETE",
+      });
+
+      if (response.status == 403 || response.status == 401) {
+        window.location = "/";
+      } else if (response.status != 200) {
+        alert(await response.text());
+      } else {
+        let userButton = document.getElementById(`${email}-row-button`);
+        userButton.innerHTML = `<button onclick="reinstateUser('${email}')">Reinstate</button>`;
+
+        let userStatus = document.getElementById(`${email}-row-status`);
+        userStatus.innerHTML = "Revoked";
+
+        tableData.users[idx].IsRevoked = true;
+      }
+    }
+
+    async function reinstateUser(email, idx) {
+      response = await fetch(`/api/user/${email}/reinstate`, {
+        headers: { Authorization: `Bearer ${authCookie}` },
+        method: "PUT",
+      });
+
+      if (response.status == 403 || response.status == 401) {
+        window.location = "/";
+      } else if (response.status != 200) {
+        alert(await response.text());
+      } else {
+        let userButton = document.getElementById(`${email}-row-button`);
+        userButton.innerHTML = `<button onclick="revokeUser('${email}')">Revoke</button>`;
+
+        let userStatus = document.getElementById(`${email}-row-status`);
+        userStatus.innerHTML = "Active";
+
+        tableData.users[idx].IsRevoked = false;
+      }
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+  </script>
+</html>
