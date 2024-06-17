@@ -26,7 +26,6 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 		Expect(err).To(BeNil())
 		cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
 		cleanS3BucketDir(testFixture.Storage.BucketName, "users")
-		cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 	})
 
 	Describe("Given user doesn't exist before", func() {
@@ -50,7 +49,6 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 			AfterAll(func() {
 				testFixture.CertManager.SaveCrl(&pkix.CertificateList{})
 				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
-				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 			})
 
@@ -104,7 +102,6 @@ var _ = Describe("Get user's vpn config", Ordered, func() {
 
 		AfterAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
-			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 		})
 

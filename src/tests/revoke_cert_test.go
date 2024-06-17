@@ -110,7 +110,6 @@ var _ = Describe("revoke user cert", Ordered, func() {
 				testFixture.UserService.AdminList = []string{}
 				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
 				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
-
 			})
 
 			Describe("Given user cert has been revoked", func() {

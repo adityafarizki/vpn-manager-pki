@@ -62,6 +62,7 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 
 		AfterAll(func() {
 			cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+			cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 			testFixture.UserService.AdminList = []string{}
 		})
 
@@ -106,6 +107,7 @@ var _ = Describe("reinstate user cert", Ordered, func() {
 			AfterAll(func() {
 				testFixture.UserService.AdminList = []string{}
 				cleanS3BucketDir(testFixture.Storage.BucketName, "clients")
+				cleanS3BucketDir(testFixture.Storage.BucketName, "users")
 
 			})
 
