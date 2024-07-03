@@ -183,7 +183,7 @@ func (userService *UserService) generateUserCert(user *User) (*x509.Certificate,
 		if err != nil {
 			return nil, fmt.Errorf("generating user cert error: %w", err)
 		}
-		if cert != nil && isCertRevoked {
+		if isCertRevoked {
 			return nil, cmerr.ForbiddenError{Message: "User not allowed to generate cert when the previous one has been revoked"}
 		}
 	}
