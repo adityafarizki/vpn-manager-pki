@@ -27,7 +27,7 @@ func (controller *GinHttpController) mainPage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(200, "index.html", gin.H{"user": user})
+	ctx.HTML(200, "index.html", gin.H{"user": user, "baseUrl": controller.baseUrl})
 }
 
 func (controller *GinHttpController) adminPage(ctx *gin.Context) {
@@ -51,7 +51,7 @@ func (controller *GinHttpController) adminPage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(200, "admin.html", nil)
+	ctx.HTML(200, "admin.html", gin.H{"baseUrl": controller.baseUrl})
 }
 
 func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
@@ -65,7 +65,7 @@ func (controller *GinHttpController) oidcCodeAuth(ctx *gin.Context) {
 	}
 
 	ctx.SetCookie(AUTH_COOKIE_NAME, token.Raw, AUTH_COOKIE_TIME, "/", ctx.Request.Header.Get("Host"), true, false)
-	ctx.Redirect(http.StatusTemporaryRedirect, "/")
+	ctx.Redirect(http.StatusTemporaryRedirect, controller.baseUrl)
 }
 
 func (controller *GinHttpController) downloadUserVpnConfig(ctx *gin.Context) {
@@ -88,7 +88,7 @@ func (controller *GinHttpController) downloadUserVpnConfig(ctx *gin.Context) {
 			controller.userService.RegisterUser(user.Email)
 		} else {
 			responseCode := http.StatusInternalServerError
-			errMessage := fmt.Errorf("Error getting user cert %s", err)
+			errMessage := fmt.Errorf("error getting user cert %s", err)
 			ctx.String(responseCode, errMessage.Error())
 			return
 		}

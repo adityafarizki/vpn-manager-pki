@@ -11,6 +11,7 @@ type GinHttpController struct {
 	authInstance *oidcauth.OidcAuthService
 	vpnManager   *vpnmanager.VpnManagerService
 	userService  *user.UserService
+	baseUrl      string
 	Router       *gin.Engine
 }
 
@@ -18,6 +19,7 @@ type NewGinHttpControllerParam struct {
 	AuthInstance *oidcauth.OidcAuthService
 	VpnManager   *vpnmanager.VpnManagerService
 	UserService  *user.UserService
+	BaseUrl      string
 }
 
 func NewGinHttpController(
@@ -28,6 +30,7 @@ func NewGinHttpController(
 		vpnManager:   param.VpnManager,
 		userService:  param.UserService,
 		Router:       gin.Default(),
+		baseUrl:      param.BaseUrl,
 	}
 	controller.buildRoute()
 

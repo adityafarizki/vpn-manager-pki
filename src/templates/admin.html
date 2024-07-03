@@ -47,7 +47,7 @@
     }
 
     async function loadUserDataBody() {
-      response = await fetch("/api/users", {
+      response = await fetch("{{.baseUrl}}/api/users", {
         headers: { Authorization: `Bearer ${authCookie}` },
       });
 
@@ -64,7 +64,7 @@
       const tableBody = document.getElementById("user-data-body");
       let result = "";
 
-      let startIdx = page * 10;
+      let startIdx = (page - 1) * 10;
       let endIdx = startIdx + 10;
       let idx = startIdx;
       for (const user of data.users.slice(startIdx, endIdx)) {
@@ -91,7 +91,7 @@
     }
 
     async function revokeUser(email, idx) {
-      response = await fetch(`/api/user/${email}`, {
+      response = await fetch(`{{.baseUrl}}/api/user/${email}`, {
         headers: { Authorization: `Bearer ${authCookie}` },
         method: "DELETE",
       });
@@ -112,7 +112,7 @@
     }
 
     async function reinstateUser(email, idx) {
-      response = await fetch(`/api/user/${email}/reinstate`, {
+      response = await fetch(`{{.baseUrl}}/api/user/${email}/reinstate`, {
         headers: { Authorization: `Bearer ${authCookie}` },
         method: "PUT",
       });

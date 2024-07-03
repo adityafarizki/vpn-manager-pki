@@ -24,15 +24,15 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 	}
 
 	certManager := &certmanager.CertManager{
-		CaDirPath:       "ca",
-		UserCertDirPath: "clients",
+		CaDirPath:       appConfig.CaBaseDir,
+		UserCertDirPath: appConfig.ClientCertBaseDir,
 		CertStorage:     s3Storage,
 	}
 
 	vpnManager, err := vpnmanager.NewVpnManagerFromStorage(&vpnmanager.NewVpnManagerFromStorageParam{
 		Storage:           s3Storage,
 		ServerIPAddresses: appConfig.VpnIpAddresses,
-		ConfigBasePath:    "ca",
+		ConfigBasePath:    appConfig.ConfigBaseDir,
 		CertManager:       certManager,
 	})
 	if err != nil {
@@ -43,13 +43,14 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 		AdminList:       appConfig.AdminEmailList,
 		CertManager:     certManager,
 		DataStorage:     s3Storage,
-		UserDataDirPath: "users",
+		UserDataDirPath: appConfig.UserDataDirPath,
 	}
 
 	ginController := gin.NewGinHttpController(&gin.NewGinHttpControllerParam{
 		AuthInstance: authInstance,
 		VpnManager:   vpnManager,
 		UserService:  userService,
+		BaseUrl:      appConfig.BaseUrl,
 	})
 
 	return ginController, nil

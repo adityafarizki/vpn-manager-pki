@@ -16,12 +16,19 @@ func ConfigFromEnv() (*Config, error) {
 	for i := 0; i < configReflection.NumField(); i++ {
 		varName := configReflection.Type().Field(i).Name
 		varType := configReflection.Type().Field(i).Type
+		optional := configReflection.Type().Field(i).Tag.Get("optional")
+		defaultVal := configReflection.Type().Field(i).Tag.Get("default")
+
 		field := configReflection.FieldByName(varName)
 		envName := getEnvName(varName)
 		envVal := os.Getenv(envName)
 
-		if envVal == "" {
+		if envVal == "" && optional != "yes" {
 			return nil, fmt.Errorf("error env param %s required", envName)
+		}
+
+		if envVal == "" && optional == "yes" && defaultVal != "" {
+			envVal = defaultVal
 		}
 
 		if varType.String() == "[]string" {

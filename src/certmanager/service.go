@@ -15,6 +15,13 @@ import (
 	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
 )
 
+const CA_FILE_NAME = "ca.pem"
+const CA_KEY_FILE_NAME = "ca-key.pem"
+const CRL_FILE_NAME = "crl.pem"
+
+const USER_CERT_FILE_NAME = "cert.pem"
+const USER_KEY_FILE_NAME = "key.pem"
+
 func (cm *CertManager) GetCert(commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	certPath := cm.getCertPath(commonName)
 	keyPath := cm.getKeyPath(commonName)
@@ -100,7 +107,7 @@ func (cm *CertManager) GenerateCert(commonName string) (*x509.Certificate, *rsa.
 func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 	crl, err := cm.GetCrl()
 	if err != nil {
-		return fmt.Errorf("Revoke cert error: %w", err)
+		return fmt.Errorf("revoke cert error: %w", err)
 	}
 
 	for _, revokedCert := range crl.TBSCertList.RevokedCertificates {
@@ -116,7 +123,7 @@ func (cm *CertManager) RevokeCert(userCert *x509.Certificate) error {
 	crl.TBSCertList.RevokedCertificates = append(crl.TBSCertList.RevokedCertificates, *newRevokedCert)
 	err = cm.SaveCrl(crl)
 	if err != nil {
-		return fmt.Errorf("Revoke cert error: %w", err)
+		return fmt.Errorf("revoke cert error: %w", err)
 	}
 
 	return nil
@@ -141,13 +148,13 @@ func (cm *CertManager) GetCrl() (*pkix.CertificateList, error) {
 	crlPath := cm.getCrlPath()
 	crlBinary, err := cm.CertStorage.GetFile(crlPath)
 	if err != nil {
-		return nil, fmt.Errorf("Get CRL error: %w", err)
+		return nil, fmt.Errorf("get CRL error: %w", err)
 	}
 
 	crlPemBlock, _ := pem.Decode(crlBinary)
 	crl, err := x509.ParseCRL(crlPemBlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Get CRL error: %w", err)
+		return nil, fmt.Errorf("get CRL error: %w", err)
 	}
 
 	return crl, nil
@@ -156,7 +163,7 @@ func (cm *CertManager) GetCrl() (*pkix.CertificateList, error) {
 func (cm *CertManager) SaveCrl(crl *pkix.CertificateList) error {
 	ca, caKey, err := cm.GetRootCert()
 	if err != nil {
-		return fmt.Errorf("Save CRL error: %w", err)
+		return fmt.Errorf("save CRL error: %w", err)
 	}
 
 	crlBytes, err := x509.CreateRevocationList(
@@ -168,7 +175,7 @@ func (cm *CertManager) SaveCrl(crl *pkix.CertificateList) error {
 		caKey,
 	)
 	if err != nil {
-		return fmt.Errorf("Save CRL error: %w", err)
+		return fmt.Errorf("save CRL error: %w", err)
 	}
 
 	var crlPemBlock = &pem.Block{
@@ -178,12 +185,12 @@ func (cm *CertManager) SaveCrl(crl *pkix.CertificateList) error {
 	var crlPemBytesBuffer bytes.Buffer
 	err = pem.Encode(io.Writer(&crlPemBytesBuffer), crlPemBlock)
 	if err != nil {
-		return fmt.Errorf("Save CRL error: %w", err)
+		return fmt.Errorf("save CRL error: %w", err)
 	}
 
 	err = cm.CertStorage.SaveFile(cm.getCrlPath(), crlPemBytesBuffer.Bytes())
 	if err != nil {
-		return fmt.Errorf("Save CRL error: %w", err)
+		return fmt.Errorf("save CRL error: %w", err)
 	}
 
 	return nil
@@ -192,7 +199,7 @@ func (cm *CertManager) SaveCrl(crl *pkix.CertificateList) error {
 func (cm *CertManager) ListCertsCommonName() ([]string, error) {
 	commonNameList, err := cm.CertStorage.ListDir(cm.UserCertDirPath + "/")
 	if err != nil {
-		return nil, fmt.Errorf("List certs common name error: %w", err)
+		return nil, fmt.Errorf("list certs common name error: %w", err)
 	}
 
 	return commonNameList, nil
@@ -226,7 +233,7 @@ func (cm *CertManager) CertToPem(cert *x509.Certificate) ([]byte, error) {
 	var certPemBytesBuffer bytes.Buffer
 	err := pem.Encode(io.Writer(&certPemBytesBuffer), certPemBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Converting Cert To Pem error: %w", err)
+		return nil, fmt.Errorf("converting Cert To Pem error: %w", err)
 	}
 
 	return certPemBytesBuffer.Bytes(), nil
@@ -235,7 +242,7 @@ func (cm *CertManager) CertToPem(cert *x509.Certificate) ([]byte, error) {
 func (cm *CertManager) KeyToPem(privkey *rsa.PrivateKey) ([]byte, error) {
 	keyBytes, err := x509.MarshalPKCS8PrivateKey(privkey)
 	if err != nil {
-		return nil, fmt.Errorf("Converting Key To Pem error: %w", err)
+		return nil, fmt.Errorf("converting Key To Pem error: %w", err)
 	}
 
 	keyPemBlock := &pem.Block{
@@ -245,46 +252,46 @@ func (cm *CertManager) KeyToPem(privkey *rsa.PrivateKey) ([]byte, error) {
 	var keyPemBytesBuffer bytes.Buffer
 	err = pem.Encode(io.Writer(&keyPemBytesBuffer), keyPemBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Converting Key To Pem error: %w", err)
+		return nil, fmt.Errorf("converting Key To Pem error: %w", err)
 	}
 
 	return keyPemBytesBuffer.Bytes(), nil
 }
 
 func (cm *CertManager) getCertPath(commonName string) string {
-	return fmt.Sprintf("%s/%s/cert.pem", cm.UserCertDirPath, commonName)
+	return fmt.Sprintf("%s/%s/%s", cm.UserCertDirPath, commonName, USER_CERT_FILE_NAME)
 }
 
 func (cm *CertManager) getKeyPath(commonName string) string {
-	return fmt.Sprintf("%s/%s/key.pem", cm.UserCertDirPath, commonName)
+	return fmt.Sprintf("%s/%s/%s", cm.UserCertDirPath, commonName, USER_KEY_FILE_NAME)
 }
 
 func (cm *CertManager) getCrlPath() string {
-	return fmt.Sprintf("%s/crl.pem", cm.CaDirPath)
+	return fmt.Sprintf("%s/%s", cm.CaDirPath, CRL_FILE_NAME)
 }
 
 func (cm *CertManager) GetRootCert() (*x509.Certificate, *rsa.PrivateKey, error) {
-	caCertPath := fmt.Sprintf("%s/cert.pem", cm.CaDirPath)
-	caKeyPath := fmt.Sprintf("%s/priv.pem", cm.CaDirPath)
+	caCertPath := fmt.Sprintf("%s/%s", cm.CaDirPath, CA_FILE_NAME)
+	caKeyPath := fmt.Sprintf("%s/%s", cm.CaDirPath, CA_KEY_FILE_NAME)
 
 	certBinary, err := cm.CertStorage.GetFile(caCertPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
+		return nil, nil, fmt.Errorf("getRootCert error: %w", err)
 	}
 
 	keyBinary, err := cm.CertStorage.GetFile(caKeyPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
+		return nil, nil, fmt.Errorf("getRootCert error: %w", err)
 	}
 
 	cert, err := cm.PemToCert(certBinary)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
+		return nil, nil, fmt.Errorf("getRootCert error: %w", err)
 	}
 
 	key, err := cm.PemToKey(keyBinary)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetRootCert error: %w", err)
+		return nil, nil, fmt.Errorf("getRootCert error: %w", err)
 	}
 
 	return cert, key, nil
