@@ -4,10 +4,63 @@
     <meta charset="utf-8" />
     <title>VPN Config</title>
     <meta name="description" content="Download your VPN config" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
   </head>
-  <body>
-    <a href="{{.baseUrl}}/vpn-config">
-      <button>Download VPN config {{.user.Email}}</button>
-    </a>
+  <body class="container mt-5">
+    <div class="row">
+      <div class="col-md-6"><h1>VPN Configuration</h1></div>
+    </div>
+    <div class="row justify-content-md-center mt-5">
+      <div class="col-md-6">
+        <a class="btn btn-primary" href="{{.baseUrl}}/vpn-config">
+          Download VPN config {{.user.Email}}
+        </a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6">
+        <h2>How To Use</h2>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-10">
+        <ol>
+          <li class="mt-2">
+            Download and install OpenVPN Connect from this link
+            <a href="https://openvpn.net/client/"
+              >https://openvpn.net/client/</a
+            >
+          </li>
+          <li class="mt-2">
+            Download the OpenVPN config from the button above
+          </li>
+          <li class="mt-2">Extract the downloaded zip file</li>
+          <li class="mt-2">Launch OpenVPN Connect and chose import file</li>
+          <li class="mt-2">
+            Drag and drop the extracted zip files to the OpenVPN Connect UI
+          </li>
+          <li class="mt-2">
+            Now you can chose which VPN gateway you want to connect to
+          </li>
+        </ol>
+      </div>
+    </div>
+    {{ if .isAdmin }}
+    <div class="row justify-content-md-center mt-5">
+      <div class="col-md-6">
+        <h2>If you're an admin</h2>
+      </div>
+    </div>
+    <div class="row justify-content-md-center mt-3">
+      <div class="col-md-6">
+        <a class="btn btn-primary" href="/admin">Go to admin page</a>
+      </div>
+    </div>
+    {{ end }}
   </body>
 </html>

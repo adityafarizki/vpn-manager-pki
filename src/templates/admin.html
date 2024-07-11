@@ -4,21 +4,38 @@
     <meta charset="utf-8" />
     <title>VPN Access Administration</title>
     <meta name="description" content="Administrate access to VPN" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
   </head>
-  <body>
-    <input
-      name="user search bar"
-      type="text"
-      placeholder="search user email"
-    /><br />
-    <div onclick="prevPage()">prev</div>
-    <div onclick="nextPage()">next</div>
-    <table id="user-data-table">
+  <body class="container mt-4">
+    <form>
+      <div class="mb-3">
+        <label for="search-bar" class="form-label">Find email address</label>
+        <input
+          name="user search bar"
+          type="text"
+          placeholder="search user email"
+          id="search-bar"
+          class="form-control"
+        /><br />
+      </div>
+    </form>
+    <div id="table-button-bar">
+      <button onclick="prevPage()" class="btn btn-primary">prev</button>
+      <div class="btn btn-primary" onclick="nextPage()" class="btn btn-primary">
+        next
+      </div>
+    </div>
+    <table id="user-data-table" class="table table-striped">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>status</th>
-          <th>action</th>
+          <th scope="col">Name</th>
+          <th scope="col">status</th>
+          <th scope="col">action</th>
         </tr>
       </thead>
       <tbody id="user-data-body"></tbody>
@@ -26,16 +43,42 @@
   </body>
   <script>
     const authCookie = getCookie("authJwt");
+    var userData;
     var tableData;
     var page = 1;
     loadUserDataBody().then((data) => {
-      tableData = data;
-      renderTable(tableData, page);
+      userData = data.users;
+      tableData = userData.slice(0, 10);
+      renderTable(tableData);
     });
+
+    document
+      .getElementById("search-bar")
+      .addEventListener("keypress", (event) => {
+        if (event.key == "Enter") {
+          event.preventDefault();
+          let email = document.getElementById("search-bar").value;
+          findUser(email);
+        }
+      });
+
+    function findUser(email) {
+      let matchingUsers = userData.filter((user) => user.Email.includes(email));
+      tableData = matchingUsers.slice(0, 10);
+      renderTable(tableData);
+    }
 
     function nextPage() {
       page += 1;
-      renderTable(tableData, page);
+      let startIdx = (page - 1) * 10;
+      let endIdx = startIdx + 10;
+
+      if (startIdx >= userData.length) {
+        page -= 1;
+        return;
+      }
+      tableData = userData.slice(startIdx, endIdx);
+      renderTable(tableData);
     }
 
     function prevPage() {
@@ -43,7 +86,14 @@
         return;
       }
       page -= 1;
-      renderTable(tableData, page);
+      let startIdx = (page - 1) * 10;
+      let endIdx = startIdx + 10;
+      tableData = userData.slice(startIdx, endIdx);
+      renderTable(tableData);
+    }
+
+    function reloadCurrentTable() {
+      renderTable(tableData);
     }
 
     async function loadUserDataBody() {
@@ -60,19 +110,16 @@
       }
     }
 
-    async function renderTable(data, page) {
+    async function renderTable(data) {
       const tableBody = document.getElementById("user-data-body");
       let result = "";
 
-      let startIdx = (page - 1) * 10;
-      let endIdx = startIdx + 10;
-      let idx = startIdx;
-      for (const user of data.users.slice(startIdx, endIdx)) {
+      for (const user of data) {
         var button;
         if (user.IsRevoked) {
-          button = `<button onclick="reinstateUser('${user.Email}', ${idx})">Reinstate</button>`;
+          button = `<button class="btn btn-primary" onclick="reinstateUser('${user.Email}')">Reinstate</button>`;
         } else {
-          button = `<button onclick="revokeUser('${user.Email}', ${idx})">Revoke</button>`;
+          button = `<button class="btn btn-danger" onclick="revokeUser('${user.Email}')">Revoke</button>`;
         }
         const status = user.IsRevoked ? "Revoked" : "Active";
 
@@ -83,14 +130,12 @@
             <td id='${user.Email}-row-button'>${button}</td>
           </tr>
         `;
-
-        idx++;
       }
 
       tableBody.innerHTML = result;
     }
 
-    async function revokeUser(email, idx) {
+    async function revokeUser(email) {
       response = await fetch(`{{.baseUrl}}/api/user/${email}`, {
         headers: { Authorization: `Bearer ${authCookie}` },
         method: "DELETE",
@@ -101,13 +146,9 @@
       } else if (response.status != 200) {
         alert(await response.text());
       } else {
-        let userButton = document.getElementById(`${email}-row-button`);
-        userButton.innerHTML = `<button onclick="reinstateUser('${email}')">Reinstate</button>`;
-
-        let userStatus = document.getElementById(`${email}-row-status`);
-        userStatus.innerHTML = "Revoked";
-
-        tableData.users[idx].IsRevoked = true;
+        let user = userData.find((user) => user.Email == email);
+        user.IsRevoked = true;
+        reloadCurrentTable();
       }
     }
 
@@ -122,13 +163,9 @@
       } else if (response.status != 200) {
         alert(await response.text());
       } else {
-        let userButton = document.getElementById(`${email}-row-button`);
-        userButton.innerHTML = `<button onclick="revokeUser('${email}')">Revoke</button>`;
-
-        let userStatus = document.getElementById(`${email}-row-status`);
-        userStatus.innerHTML = "Active";
-
-        tableData.users[idx].IsRevoked = false;
+        let user = userData.find((user) => user.Email == email);
+        user.IsRevoked = false;
+        reloadCurrentTable();
       }
     }
 
