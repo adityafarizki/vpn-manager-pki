@@ -11,6 +11,7 @@ type GoogleOidcAuthConfig struct {
 	TokenUrl     string
 	CertUrl      string
 	RedirectUrl  string
+	Scopes       []string
 }
 
 func NewGoogleOidcAuth(config *GoogleOidcAuthConfig) (*OidcAuthService, error) {
@@ -19,8 +20,6 @@ func NewGoogleOidcAuth(config *GoogleOidcAuthConfig) (*OidcAuthService, error) {
 		return nil, fmt.Errorf("error initializing Google auth: %w", err)
 	}
 
-	scopes := []string{"https://www.googleapis.com/auth/userinfo.email"}
-
 	return &OidcAuthService{
 		ClientId:     config.ClientId,
 		ClientSecret: config.ClientSecret,
@@ -28,6 +27,6 @@ func NewGoogleOidcAuth(config *GoogleOidcAuthConfig) (*OidcAuthService, error) {
 		TokenUrl:     config.TokenUrl,
 		AuthKeys:     authKeys,
 		RedirectUrl:  config.RedirectUrl,
-		Scopes:       scopes,
+		Scopes:       config.Scopes,
 	}, nil
 }

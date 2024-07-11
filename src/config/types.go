@@ -11,10 +11,11 @@ type Config struct {
 	OidcTokenUrl      string
 	OidcCertUrl       string
 	OidcRedirectUrl   string
+	OidcScopes        []string
 	OidcProvider      oidcauth.OidcProvider
 	StorageBucket     string
 	VpnIpAddresses    []string
-	AdminEmailList    []string
+	AdminEmailList    []string `optional:"yes"`
 	BaseUrl           string
 	Port              string `optional:"yes" default:"8080"`
 	Address           string `optional:"yes" default:"0.0.0.0"`

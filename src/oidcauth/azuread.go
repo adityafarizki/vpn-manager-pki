@@ -9,6 +9,7 @@ type NewAzureAdOidcAuthConfig struct {
 	TokenUrl     string
 	JwkUrl       string
 	RedirectUrl  string
+	Scopes       []string
 }
 
 func NewAzureAdOidcAuth(config *NewAzureAdOidcAuthConfig) (*OidcAuthService, error) {
@@ -17,8 +18,6 @@ func NewAzureAdOidcAuth(config *NewAzureAdOidcAuthConfig) (*OidcAuthService, err
 		return nil, fmt.Errorf("error initializing Google auth: %w", err)
 	}
 
-	scopes := []string{"api://23b3d855-cc27-4610-8290-653b02159435/email"}
-
 	return &OidcAuthService{
 		ClientId:     config.ClientId,
 		ClientSecret: config.ClientSecret,
@@ -26,6 +25,6 @@ func NewAzureAdOidcAuth(config *NewAzureAdOidcAuthConfig) (*OidcAuthService, err
 		TokenUrl:     config.TokenUrl,
 		AuthKeys:     authKeys,
 		RedirectUrl:  config.RedirectUrl,
-		Scopes:       scopes,
+		Scopes:       config.Scopes,
 	}, nil
 }

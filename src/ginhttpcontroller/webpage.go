@@ -27,7 +27,8 @@ func (controller *GinHttpController) mainPage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(200, "index.html", gin.H{"user": user, "baseUrl": controller.baseUrl})
+	isAdmin := controller.userService.IsUserAdmin(user)
+	ctx.HTML(200, "index.html", gin.H{"user": user, "baseUrl": controller.baseUrl, "isAdmin": isAdmin})
 }
 
 func (controller *GinHttpController) adminPage(ctx *gin.Context) {
