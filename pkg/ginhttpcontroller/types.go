@@ -1,9 +1,9 @@
 package ginhttpcontroller
 
 import (
-	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
-	"github.com/adityafarizki/vpn-gate-pki/user"
-	"github.com/adityafarizki/vpn-gate-pki/vpnmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/oidcauth"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/vpnmanager"
 	"github.com/gin-gonic/gin"
 )
 

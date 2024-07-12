@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/adityafarizki/vpn-gate-pki/config"
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/config"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 )
 
 var _ = Describe("reinstate user cert", Ordered, func() {

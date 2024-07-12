@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 	"github.com/gin-gonic/gin"
 )
 

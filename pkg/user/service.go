@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/pkg/commonerrors"
 )
 
 func UserFromCert(cert *x509.Certificate) (*User, error) {

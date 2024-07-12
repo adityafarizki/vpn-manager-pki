@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/adityafarizki/vpn-gate-pki/certmanager"
-	"github.com/adityafarizki/vpn-gate-pki/config"
-	gin "github.com/adityafarizki/vpn-gate-pki/ginhttpcontroller"
-	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
-	"github.com/adityafarizki/vpn-gate-pki/s3storage"
-	"github.com/adityafarizki/vpn-gate-pki/user"
-	"github.com/adityafarizki/vpn-gate-pki/vpnmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/certmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/config"
+	gin "github.com/adityafarizki/vpn-gate-pki/pkg/ginhttpcontroller"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/oidcauth"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/s3storage"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/vpnmanager"
 )
 
 func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
@@ -66,6 +66,7 @@ func setupAuthInstance(appConfig *config.Config) (*oidcauth.OidcAuthService, err
 			TokenUrl:     appConfig.OidcTokenUrl,
 			CertUrl:      appConfig.OidcCertUrl,
 			RedirectUrl:  appConfig.OidcRedirectUrl,
+			Scopes:       appConfig.OidcScopes,
 		})
 	case oidcauth.AzureAD:
 		return oidcauth.NewAzureAdOidcAuth(&oidcauth.NewAzureAdOidcAuthConfig{
@@ -75,6 +76,7 @@ func setupAuthInstance(appConfig *config.Config) (*oidcauth.OidcAuthService, err
 			TokenUrl:     appConfig.OidcTokenUrl,
 			JwkUrl:       appConfig.OidcCertUrl,
 			RedirectUrl:  appConfig.OidcRedirectUrl,
+			Scopes:       appConfig.OidcScopes,
 		})
 	default:
 		return nil, fmt.Errorf("OIDC type config not found")

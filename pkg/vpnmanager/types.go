@@ -1,7 +1,7 @@
 package vpnmanager
 
 import (
-	"github.com/adityafarizki/vpn-gate-pki/certmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/certmanager"
 )
 
 type VpnManagerService struct {

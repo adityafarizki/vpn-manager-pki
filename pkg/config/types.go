@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/oidcauth"
 )
 
 type Config struct {

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 	"github.com/golang-jwt/jwt"
 )
 

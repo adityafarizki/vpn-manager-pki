@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/pkg/commonerrors"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 	"github.com/gin-gonic/gin"
 )
 

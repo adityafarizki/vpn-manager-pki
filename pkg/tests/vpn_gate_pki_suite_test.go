@@ -11,13 +11,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/adityafarizki/vpn-gate-pki/certmanager"
-	"github.com/adityafarizki/vpn-gate-pki/config"
-	controller "github.com/adityafarizki/vpn-gate-pki/ginhttpcontroller"
-	"github.com/adityafarizki/vpn-gate-pki/oidcauth"
-	"github.com/adityafarizki/vpn-gate-pki/s3storage"
-	"github.com/adityafarizki/vpn-gate-pki/user"
-	"github.com/adityafarizki/vpn-gate-pki/vpnmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/certmanager"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/config"
+	controller "github.com/adityafarizki/vpn-gate-pki/pkg/ginhttpcontroller"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/oidcauth"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/s3storage"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/vpnmanager"
 )
 
 type KeyConfig struct {

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/adityafarizki/vpn-gate-pki/config"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/config"
 )
 
 func main() {

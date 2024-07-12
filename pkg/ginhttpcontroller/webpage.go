@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/pkg/commonerrors"
 	"github.com/gin-gonic/gin"
 )
 

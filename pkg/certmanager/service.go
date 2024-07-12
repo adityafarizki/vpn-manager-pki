@@ -12,7 +12,7 @@ import (
 	"math/big"
 	"time"
 
-	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/pkg/commonerrors"
 )
 
 const CA_FILE_NAME = "ca.pem"

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"

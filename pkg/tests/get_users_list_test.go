@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"sort"
 
-	"github.com/adityafarizki/vpn-gate-pki/config"
-	"github.com/adityafarizki/vpn-gate-pki/user"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/config"
+	"github.com/adityafarizki/vpn-gate-pki/pkg/user"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

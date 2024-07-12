@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	cmerr "github.com/adityafarizki/vpn-gate-pki/commonerrors"
+	cmerr "github.com/adityafarizki/vpn-gate-pki/pkg/commonerrors"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
