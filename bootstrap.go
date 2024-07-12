@@ -51,6 +51,7 @@ func Bootstrap(appConfig *config.Config) (*gin.GinHttpController, error) {
 		VpnManager:   vpnManager,
 		UserService:  userService,
 		BaseUrl:      appConfig.BaseUrl,
+		TemplateDir:  "templates",
 	})
 
 	return ginController, nil

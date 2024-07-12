@@ -108,6 +108,7 @@ func Bootstrap(appConfig *config.Config) (*TestFixture, error) {
 		AuthInstance: authInstance,
 		VpnManager:   vpnManager,
 		UserService:  userService,
+		TemplateDir:  "../templates",
 	})
 
 	return &TestFixture{

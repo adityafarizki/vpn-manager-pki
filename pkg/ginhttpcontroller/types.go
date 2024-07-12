@@ -20,6 +20,7 @@ type NewGinHttpControllerParam struct {
 	VpnManager   *vpnmanager.VpnManagerService
 	UserService  *user.UserService
 	BaseUrl      string
+	TemplateDir  string
 }
 
 func NewGinHttpController(
@@ -32,7 +33,7 @@ func NewGinHttpController(
 		Router:       gin.Default(),
 		baseUrl:      param.BaseUrl,
 	}
-	controller.buildRoute()
+	controller.buildRoute(param.TemplateDir)
 
 	return controller
 }
