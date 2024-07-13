@@ -31,3 +31,30 @@ The intended application of this system can be seen from the following repositor
 - **CLIENT_CERT_BASE_DIR** string optional default :"clients": base dir for the client cert files
 - **USER_DATA_DIR_PATH** string optional default:"users" : base dir for the user files
 - **CONFIG_BASE_DIR** string optional default:"ca" : base dir for the configuration files
+
+## Contributing
+
+### Reporting Bugs
+
+If you find a bug, please create an issue with the following details:
+
+- A clear and descriptive title
+- A description of the steps to reproduce the issue
+- Any error messages or logs
+- Your environment (operating system, Go version, etc.)
+
+### Requesting Features
+
+If you have a feature request, please create an issue with the following details:
+
+- A clear and descriptive title
+- A detailed description of the feature
+- Any examples or use cases
+
+### Improving Documentation
+
+If you find any errors in the documentation or have suggestions for improvements, feel free to create a pull request. Documentation is an important part of the project and we appreciate your contributions.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
